@@ -11,16 +11,16 @@ const control = require('./router/router');
 const request = require('request-promise');
 const cors = require('koa2-cors');
 const jsonwebtoken = require("jsonwebtoken");
+const fs = require("fs");
 //编译后静态路径
 const staticPath = './frontend';
 //crud服务
 const refUrl = "http://192.168.0.166:9090";
+const mime = require('mime-types')
 app.keys = ['kbds random secret'];
 app.use(session(app));
 //应用静态资源
-app.use(static(
-    path.join(__dirname, staticPath)
-));
+app.use(static(path.join(__dirname, staticPath)));
 //数据处理
 app.use(bodyParser());
 app.use(cors());
@@ -30,13 +30,19 @@ app.use(async (ctx, next) => {
     await next();
     const rt = ctx.response.get('X-Response-Time');
     const reUrl = ctx.response.get('X-Response-Url');
+    // if (ctx.originalUrl.indexOf('attachs') > -1) {
+    //     const filePath = path.join(__dirname, ctx.url);
+    //     const file = fs.readFileSync(filePath); //读取文件
+    //     let mimeType = mime.lookup(filePath); //读取图片文件类型
+    //     ctx.set('content-type', mimeType); //设置返回类型
+    //     ctx.body = file; //返回图片
+    // }
     if (reUrl.length > 0) {
         console.log(`${ctx.method} ${ctx.url} redirect to ${reUrl} - ${rt}`);
     } else {
         console.log(`${ctx.method} ${ctx.url} - ${rt}`);
     }
 });
-
 //监听器
 app.use(async (ctx, next) => {
     const start = Date.now();
@@ -45,27 +51,23 @@ app.use(async (ctx, next) => {
     ctx.set('X-Response-Time', `${ms}ms`);
 });
 
-// 错误处理
+//错误处理
 app.use(function (ctx, next) {
     return next().catch((err) => {
         if (401 == err.status) {
             ctx.status = 200;
             ctx.body = {
-                status: 401,
-                success: false,
-                msg: 'Protected resource, use Authorization header to get access\n'
+                status: 401, success: false, msg: 'Protected resource, use Authorization header to get access\n'
             }
         } else {
-            throw '??' + err;
+            ctx.error = err;
+            throw err;
         }
     });
 });
 
 // 不过滤的请求路径
-const ignoreUrl = [
-    /\/public/,
-    /\/login/
-];
+const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/];
 // Middleware below this line is only reached if JWT token is valid
 app.use(jwt({
     secret: 'kbds random secret'
@@ -74,7 +76,7 @@ app.use(jwt({
 }));
 
 
-//路由
+//路由,跳转到基础接口
 app.use(async (ctx, next) => {
     const url = (ctx.request.url.replace(/([?][^?]+)$/, ''))
     ctx.request.realUrl = ctx.request.url
@@ -88,25 +90,18 @@ app.use(async (ctx, next) => {
         case 'getListByPage':
             ctx.request.url = '/getListByPage'
             break;
+        case 'getDataById':
+            ctx.request.url = '/getDataById'
+            break;
         case 'updateById':
             ctx.request.url = '/updateById'
+            break;
+        case 'deleteMultiple':
+            ctx.request.url = '/deleteMultiple'
             break;
         default:
             break;
     }
-    // if (ctx.request.url.indexOf('/api') > -1) {
-    //     ctx.set('X-Response-Url', url);
-    //     const response = await request({
-    //         method: ctx.method,
-    //         url: refUrl + url,
-    //         headers: {
-    //             "content-type": ctx.header['content-type'],
-    //         },
-    //         body: ctx.request.body,
-    //         json: true
-    //     });
-    //     ctx.apiResponse = response;
-    // }
     await next();
 });
 //接口
