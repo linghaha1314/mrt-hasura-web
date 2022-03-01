@@ -87,6 +87,9 @@ app.use(async (ctx, next) => {
         case 'deleteById':
             ctx.request.url = '/deleteById'
             break;
+        case 'getList':
+            ctx.request.url = '/getList'
+            break;
         case 'getListByPage':
             ctx.request.url = '/getListByPage'
             break;
