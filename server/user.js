@@ -21,6 +21,7 @@ function getTableName(url) {
 
 //转化列名
 function convertColumn(column) {
+    console.log(column);
     let columnArr = column.split('')
     //xxx_id->xxxId
     if (column.indexOf('_') > -1) {
@@ -157,26 +158,18 @@ async function updateById(ctx, next) {
     let columns = ""
     for (const key in ctx.request.body) {
         if (key !== 'id') {
-            columns += (key + "='" + convertColumn(ctx.request.body[key]) + "',")
+            columns += (convertColumn(key) + "='" + ctx.request.body[key] + "',")
         }
     }
     columns = columns.slice(0, columns.length - 1)
     const data = await pool.query(`
     update  ${getTableName(ctx.request.url)}
     set ${columns}
-    where
-    id = $1`
-
-
-        , [ctx.request.body.id]);
+    where id = $1`, [ctx.request.body.id]);
     const currentRow = await pool.query(`
     select * from  ${getTableName(ctx.request.url)}
-    where
-    id = $1`
-
-
-        , [ctx.request.body.id]);
-    return currentRow.rows[0]
+    where id = $1`, [ctx.request.body.id]);
+    return covertColumnByType(currentRow.fields, 2)
 }
 
 //转发请求

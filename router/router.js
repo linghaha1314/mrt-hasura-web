@@ -59,6 +59,7 @@ module.exports = (router) => {
     router.post(`/updateById`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await updateById(ctx, next);
+        console.log('===>>>', data);
         if (data) {
             ctx.body = {
                 data: data, success: true, msg: '更新成功！'
@@ -95,6 +96,7 @@ module.exports = (router) => {
             success: false, msg: '删除失败！'
         }
     });
+
 
     router.post('/login', async (ctx, next) => {
         const result = await validLogin(ctx.request.body);
@@ -149,6 +151,18 @@ module.exports = (router) => {
         ctx.body = {
             list: list, total: data.total.count, success: true, msg: '查询成功！'
         }
+    });
+
+    //client
+    router.post('/client/login', async (ctx) => {
+        const result = await validLogin(ctx.request.body);
+        ctx.body = result.success ? {
+            ...result, token: jsonwebtoken.sign({
+                data: {
+                    id: result.id, name: ctx.request.body.username
+                }, exp: Math.floor(Date.now() / 1000) + (60 * 60), // 60 seconds * 60 minutes = 1 hour
+            }, 'kbds random secret'),
+        } : result;
     });
     //读取图片
     router.get('/attachs/:name', ctx => {
