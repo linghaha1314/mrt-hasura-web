@@ -75,6 +75,7 @@ async function validLogin(loginObj) {
         result.msg = '用户名错误！';
     } else if (pass.rows.length !== 1) {
         result.msg = '密码错误';
+        result.success = false;
     } else {
         result.id = user.rows[0].id;
         result.success = true;
