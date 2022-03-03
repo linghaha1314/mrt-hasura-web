@@ -97,7 +97,7 @@ module.exports = (router) => {
         }
     });
 
-
+    //自定义接口
     router.post('/login', async (ctx, next) => {
         const result = await validLogin(ctx.request.body);
         ctx.body = result.success ? {
@@ -128,18 +128,6 @@ module.exports = (router) => {
         }
 
     });
-    router.post(`/video/deleteMultiples`, async (ctx, next) => {
-        const data = await getApi(ctx, next);
-        if (data) {
-            ctx.body = {
-                data, success: true, msg: '删除成功！'
-            }
-            return;
-        }
-        ctx.body = {
-            success: false, msg: '删除失败！'
-        }
-    });
     router.get(`/chapters/getListByCourseId`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = (await getApi(ctx, next)).data;
@@ -152,8 +140,17 @@ module.exports = (router) => {
             list: list, total: data.total.count, success: true, msg: '查询成功！'
         }
     });
+    router.get(`/menu/list`, async (ctx, next) => {
+        const data = await getApi(ctx, next);
+        const parentData = data.list.filter(res => !res.parentId);
+        const childData = data.list.filter(res => res.parentId);
+        getMenuTree(parentData, childData);
+        ctx.body = {
+            success: true, msg: '获取成功', list: parentData
+        }
+    });
 
-    //client
+    //client接口
     router.post('/client/login', async (ctx) => {
         const result = await validLogin(ctx.request.body);
         ctx.body = result.success ? {
@@ -164,6 +161,7 @@ module.exports = (router) => {
             }, 'kbds random secret'),
         } : result;
     });
+
     //读取图片
     router.get('/attachs/:name', ctx => {
         console.log(ctx, ctx.url)
@@ -175,15 +173,6 @@ module.exports = (router) => {
             ctx.body = file;
         } catch (err) {
             console.log(`error ${err.message}`)
-        }
-    });
-    router.get(`/menu/list`, async (ctx, next) => {
-        const data = await getApi(ctx, next);
-        const parentData = data.list.filter(res => !res.parentId);
-        const childData = data.list.filter(res => res.parentId);
-        getMenuTree(parentData, childData);
-        ctx.body = {
-            success: true, msg: '获取成功', list: parentData
         }
     });
     router.post('/public/upload', koaBody, async ctx => {

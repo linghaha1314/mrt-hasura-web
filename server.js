@@ -15,7 +15,7 @@ const fs = require("fs");
 //编译后静态路径
 const staticPath = './frontend';
 //crud服务
-const refUrl = "http://192.168.0.166:9090";
+const refUrl = "http://zyk.mrtcloud.com:8888/";
 const mime = require('mime-types')
 app.keys = ['kbds random secret'];
 app.use(session(app));

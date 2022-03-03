@@ -1,14 +1,14 @@
 const pool = require('../utils/pool');
 const request = require("request-promise");
 const {search} = require("koa/lib/request");
-const refUrl = "http://192.168.11.28:9090/api/rest";
+const refUrl = "http://zyk.mrtcloud.com:8888/api/rest";
 const result = {
     msg: '', success: false
 };
 
 //获取表名
 function getTableName(url) {
-    let tableName = url.split('/')[1];
+    let tableName = convertColumn(url.split('/')[1]);
     const strArr = tableName.split('')
     strArr.forEach(res => {
         if (/[A-Z]/.test(res)) {
