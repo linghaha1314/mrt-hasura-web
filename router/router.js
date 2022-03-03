@@ -11,6 +11,7 @@ const {
     create,
     deleteById,
     changeDataTree,
+    getList,
     getListByPage,
     getDataById,
     deleteMultiple
@@ -44,6 +45,16 @@ module.exports = (router) => {
         }
         ctx.body = {
             success: false, msg: '删除失败!'
+        }
+    });
+    router.get(`/getList`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getList(ctx, next);
+        const parentData = data.list.filter(res => !res.parentId);
+        const childData = data.list.filter(res => res.parentId);
+        getMenuTree(parentData, childData); //如果存在父子关系，变成树状结构
+        ctx.body = {
+            list: parentData, total: data.total, success: true, msg: '查询成功！'
         }
     });
     router.get(`/getListByPage`, async (ctx, next) => {

@@ -108,7 +108,31 @@ async function getListByPage(ctx, next) {
         list, total: Number(total.rows[0].count)
     }
 }
+//
+async function getList(ctx, next) {
+    const obj = JSON.parse(JSON.stringify(ctx.request.query));
+    delete obj.limit;
+    delete obj.offset;
+    delete obj.search;
+    const keys = Object.keys(obj);
+    const values = Object.values(obj);
+    let otherSql = ''
+    keys.forEach((res, index) => {
+        otherSql += 'and ' + convertColumn(res) + '=$' + (index + 4);
+    })
+    let data = {};
+    if (otherSql) {
+        data = await pool.query(`SELECT * FROM ${getTableName(ctx.request.url)} where name like $1 ${otherSql} order by id ;`, [`%${ctx.request.query.search || ''}%`]);
+    } else {
+        data = await pool.query(`SELECT * FROM ${getTableName(ctx.request.url)} order by id ;`);
+    }
+    const total = await pool.query(`SELECT count(id) FROM ${getTableName(ctx.request.url)} where name like $1`, [`%${ctx.request.query.search || ''}%`]);
+    const list = covertColumnByType(data.rows, 2)
 
+    return {
+        list, total: Number(total.rows[0].count)
+    }
+}
 //查
 async function getDataById(ctx, next) {
     const idName = convertColumn((Object.keys(ctx.request.body))[0]);
@@ -237,6 +261,7 @@ module.exports = {
     deleteById,
     validLogin,
     getApi,
+    getList,
     getListByPage,
     getMenuTree,
     changeDataTree,
