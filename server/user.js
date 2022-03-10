@@ -21,7 +21,6 @@ function getTableName(url) {
 
 //转化列名
 function convertColumn(column) {
-    console.log(column);
     let columnArr = column.split('')
     //xxx_id->xxxId
     if (column.indexOf('_') > -1) {
@@ -93,14 +92,21 @@ async function getListByPage(ctx, next) {
     const keys = Object.keys(obj);
     const values = Object.values(obj);
     let otherSql = ''
+    let sortKey = 'id'
     keys.forEach((res, index) => {
-        otherSql += 'and ' + convertColumn(res) + '=$' + (index + 4);
+        if (res !== 'sort') {
+            otherSql += 'and ' + convertColumn(res) + '=$' + (index + 4);
+        } else {
+            sortKey = convertColumn(values[index])
+            values.splice(index, 1);
+        }
     })
+    console.log(values, otherSql);
     let data = {};
     if (otherSql) {
-        data = await pool.query(`SELECT * FROM ${getTableName(ctx.request.url)} where name like $1 ${otherSql} order by id limit $2 offset $3 ;`, [`%${ctx.request.query.search || ''}%`, ctx.request.query.limit || 20, ctx.request.query.offset || null, values.join(',')]);
+        data = await pool.query(`SELECT * FROM ${getTableName(ctx.request.url)} where name like $1 ${otherSql} order by ${sortKey} limit $2 offset $3`, [`%${ctx.request.query.search || ''}%`, ctx.request.query.limit || 20, ctx.request.query.offset || null, values.join(',')]);
     } else {
-        data = await pool.query(`SELECT * FROM ${getTableName(ctx.request.url)} where name like $1 order by id limit $2 offset $3 ;`, [`%${ctx.request.query.search || ''}%`, ctx.request.query.limit || 20, ctx.request.query.offset || null]);
+        data = await pool.query(`SELECT * FROM ${getTableName(ctx.request.url)} where name like $1 order by ${sortKey} limit $2 offset $3`, [`%${ctx.request.query.search || ''}%`, ctx.request.query.limit || 20, ctx.request.query.offset || null]);
     }
     const total = await pool.query(`SELECT count(id) FROM ${getTableName(ctx.request.url)} where name like $1`, [`%${ctx.request.query.search || ''}%`]);
     const list = covertColumnByType(data.rows, 2)
@@ -108,6 +114,7 @@ async function getListByPage(ctx, next) {
         list, total: Number(total.rows[0].count)
     }
 }
+
 //
 async function getList(ctx, next) {
     const obj = JSON.parse(JSON.stringify(ctx.request.query));
@@ -133,6 +140,7 @@ async function getList(ctx, next) {
         list, total: Number(total.rows[0].count)
     }
 }
+
 //查
 async function getDataById(ctx, next) {
     const idName = convertColumn((Object.keys(ctx.request.body))[0]);
@@ -152,7 +160,7 @@ async function create(ctx, next) {
     const sql = `
     insert
     into  ${getTableName(ctx.request.url)}(${keyList.join(',')})
-    VALUES(${params.join(',')});
+    VALUES(${params.join(',')}) returning *;
     `;
     const data = await pool.query(sql, valueList);
     return data
@@ -177,13 +185,12 @@ async function deleteMultiple(ctx, next) {
     return data
 }
 
-
 //改
 async function updateById(ctx, next) {
     let columns = ""
     for (const key in ctx.request.body) {
         if (key !== 'id') {
-            columns += (convertColumn(key) + "='" + ctx.request.body[key] + "',")
+            columns += (convertColumn(key) + "=" + stringToNull(ctx.request.body[key]) + ",")
         }
     }
     columns = columns.slice(0, columns.length - 1)
@@ -195,6 +202,13 @@ async function updateById(ctx, next) {
     select * from  ${getTableName(ctx.request.url)}
     where id = $1`, [ctx.request.body.id]);
     return covertColumnByType(currentRow.fields, 2)
+}
+
+//根据字典typeCode获取所有的data
+async function dictionaryDataByTypeCode(ctx, next) {
+    //合并两张表
+    const result = await pool.query(`select d.* from kb_dictionary_type t join kb_dictionary_data d on t.id=d.type_id where t.code=$1 order by d.sequence`, [ctx.request.body['typeCode']])
+    return covertColumnByType(result.rows, 2)
 }
 
 //转发请求
@@ -214,13 +228,11 @@ async function getApi(ctx, next) {
         console.log(arr, url);
     }
     ctx.set('X-Response-Url', url);
-    console.log(ctx.request.body);
     const response = await request({
         method: ctx.method, url: refUrl + url, headers: {
             "content-type": ctx.header['content-type'],
         }, body: ctx.request.body, json: true
     });
-    console.log(response);
     return response;
 }
 
@@ -257,6 +269,10 @@ function getMenuTree(parentList, childList) {
     }
 }
 
+function stringToNull(val) {
+    return val === null ? val : "'" + val + "'"
+}
+
 module.exports = {
     deleteById,
     validLogin,
@@ -268,5 +284,6 @@ module.exports = {
     create,
     updateById,
     getDataById,
-    deleteMultiple
+    deleteMultiple,
+    dictionaryDataByTypeCode
 }

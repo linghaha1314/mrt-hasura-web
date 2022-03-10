@@ -11,6 +11,7 @@ const {
     create,
     deleteById,
     changeDataTree,
+    dictionaryDataByTypeCode,
     getList,
     getListByPage,
     getDataById,
@@ -18,6 +19,7 @@ const {
 } = require('../server/user');
 const fs = require("fs");
 const path = require("path");
+const pool = require("../utils/pool");
 
 module.exports = (router) => {
     //基础接口
@@ -107,6 +109,20 @@ module.exports = (router) => {
             success: false, msg: '删除失败！'
         }
     });
+    //字典数据获取
+    router.post(`/dictionaryData/getByTypeCode`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await dictionaryDataByTypeCode(ctx, next);
+        if (data) {
+            ctx.body = {
+                list: data, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '失败！'
+        }
+    });
 
     //自定义接口
     router.post('/login', async (ctx, next) => {
@@ -158,6 +174,66 @@ module.exports = (router) => {
         getMenuTree(parentData, childData);
         ctx.body = {
             success: true, msg: '获取成功', list: parentData
+        }
+    });
+    router.post(`/user/createUser`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const roles = ctx.request.body['roles']
+        delete ctx.request.body['roles']
+        const data = await create(ctx, next);
+        roles.forEach(res => {
+            pool.query(`insert into  kb_user_role (user_id,role_id) VALUES($1,$2);`, [data.rows[0].id, res]);
+        })
+        if (data) {
+            ctx.body = {
+                id: data, success: true, msg: '添加成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '新增失败！'
+        }
+    });
+    router.get(`/user/getUserListByPage`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx, next);
+        data.list.forEach(res => {
+            res['roles'] = [];
+            (res['roleList'] || []).forEach(rr => {
+                res['roles'].push(rr['roleId'])
+            })
+            delete data.list['roleList']
+        })
+        ctx.body = {
+            list: data.list, total: data.total, success: true, msg: '查询成功！'
+        }
+    });
+    router.post(`/user/deleteUserById`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        await pool.query(`delete from kb_user_role where user_id = $1`, [ctx.request.body.id]);
+        const data = await deleteById(ctx, next);
+        //根据userId；删除
+        ctx.body = {
+            list: data.list, total: data.total, success: true, msg: '查询成功！'
+        }
+    });
+    router.post(`/user/updateUserById`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const roles = ctx.request.body['roles']
+        delete ctx.request.body['roles']
+        const data = await updateById(ctx, next);
+        //先价差有没有，没有在
+        roles.forEach(res => {
+            pool.query(`insert into  kb_user_role (user_id,role_id) VALUES($1,$2);`, [ctx.request.body.id, res]);
+        })
+        if (data) {
+            ctx.body = {
+                data: data, success: true, msg: '更新成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '更新失败！'
         }
     });
 
