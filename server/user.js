@@ -84,31 +84,40 @@ async function validLogin(loginObj) {
 }
 
 //查
-async function getListByPage(ctx, next) {
+async function getListByPage(ctx) {
     const obj = JSON.parse(JSON.stringify(ctx.request.query));
     delete obj.limit;
     delete obj.offset;
-    delete obj.search;
+    delete obj.sort;
     const keys = Object.keys(obj);
     const values = Object.values(obj);
-    let otherSql = ''
     let sortKey = 'id'
     keys.forEach((res, index) => {
-        if (res !== 'sort') {
-            otherSql += 'and ' + convertColumn(res) + '=$' + (index + 4);
-        } else {
+        if (res === 'sort') {
             sortKey = convertColumn(values[index])
             values.splice(index, 1);
         }
     })
-    console.log(values, otherSql);
-    let data = {};
-    if (otherSql) {
-        data = await pool.query(`SELECT * FROM ${getTableName(ctx.request.url)} where name like $1 ${otherSql} order by ${sortKey} limit $2 offset $3`, [`%${ctx.request.query.search || ''}%`, ctx.request.query.limit || 20, ctx.request.query.offset || null, values.join(',')]);
-    } else {
-        data = await pool.query(`SELECT * FROM ${getTableName(ctx.request.url)} where name like $1 order by ${sortKey} limit $2 offset $3`, [`%${ctx.request.query.search || ''}%`, ctx.request.query.limit || 20, ctx.request.query.offset || null]);
+    const params = [];
+    let sql = '';
+    if (keys.length > 0) {
+        sql += ' where';
     }
-    const total = await pool.query(`SELECT count(id) FROM ${getTableName(ctx.request.url)} where name like $1`, [`%${ctx.request.query.search || ''}%`]);
+    let index = 1;
+    for (const w in obj) {
+        sql += convertColumn(w).indexOf('id') > -1 ? ` ${convertColumn(w)}=$${index}` : ` ${convertColumn(w)} like concat('%',$${index}, '%')`;
+        params.push(obj[w]);
+        if (index < keys.length - 1) {
+            sql += ` and`
+        }
+        index++;
+    }
+    const total = await pool.query(`SELECT count(id) FROM ${getTableName(ctx.request.url)}${sql}`, params);
+    sql += ' order by ' + convertColumn(sortKey) + ' limit $' + (params.length + 1);
+    params.push(ctx.request.query.limit || 20);
+    sql += ' offset $' + (params.length + 1);
+    params.push(ctx.request.query.offset || null);
+    const data = await pool.query(`select * from ${getTableName(ctx.request.url)}${sql}`, params);
     const list = covertColumnByType(data.rows, 2)
     return {
         list, total: Number(total.rows[0].count)
@@ -285,5 +294,6 @@ module.exports = {
     updateById,
     getDataById,
     deleteMultiple,
+    covertColumnByType,
     dictionaryDataByTypeCode
 }

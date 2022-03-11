@@ -11,6 +11,7 @@ const {
     create,
     deleteById,
     changeDataTree,
+    covertColumnByType,
     dictionaryDataByTypeCode,
     getList,
     getListByPage,
@@ -87,13 +88,14 @@ module.exports = (router) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getDataById(ctx, next);
         if (data) {
+            console.log('???', data)
             ctx.body = {
-                data: data, success: true, msg: '更新成功！'
+                data: data[0], success: true, msg: '查询成功！'
             }
             return;
         }
         ctx.body = {
-            success: false, msg: '更新失败！'
+            success: false, msg: '查询失败！'
         }
     });
     router.post(`/deleteMultiple`, async (ctx, next) => {
@@ -131,7 +133,7 @@ module.exports = (router) => {
             ...result, token: jsonwebtoken.sign({
                 data: {
                     id: result.id, name: ctx.request.body.username
-                }, exp: Math.floor(Date.now() / 1000) + (60 * 60), // 60 seconds * 60 minutes = 1 hour
+                }, exp: Math.floor(Date.now() / 1000) + (60 * 60 * 10), // 60 seconds * 60 minutes = 1 hour
             }, 'kbds random secret'),
         } : result;
     });
@@ -154,18 +156,6 @@ module.exports = (router) => {
             success: false, msg: '重置失败！'
         }
 
-    });
-    router.get(`/chapters/getListByCourseId`, async (ctx, next) => {
-        ctx.request.url = ctx.request.realUrl
-        const data = (await getApi(ctx, next)).data;
-        console.log(data)
-        const list = []
-        data.list.forEach(res => {
-            list.push(res)
-        })
-        ctx.body = {
-            list: list, total: data.total.count, success: true, msg: '查询成功！'
-        }
     });
     router.get(`/menu/list`, async (ctx, next) => {
         const data = await getApi(ctx, next);
@@ -247,6 +237,16 @@ module.exports = (router) => {
                 }, exp: Math.floor(Date.now() / 1000) + (60 * 60), // 60 seconds * 60 minutes = 1 hour
             }, 'kbds random secret'),
         } : result;
+    });
+    router.get(`/chapters/getListByCourseId`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = (await getApi(ctx, next)).data;
+        const parentData = data.list.filter(res => !res.parentId);
+        const childData = data.list.filter(res => res.parentId);
+        getMenuTree(parentData, childData); //如果存在父子关系，变成树状结构
+        ctx.body = {
+            list: parentData, total: data.total.count, success: true, msg: '查询成功！'
+        }
     });
 
     //读取图片
