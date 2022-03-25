@@ -107,7 +107,7 @@ async function getListByPage(ctx) {
     for (const w in obj) {
         sql += convertColumn(w).indexOf('id') > -1 ? ` ${convertColumn(w)}=$${index}` : ` ${convertColumn(w)} like concat('%',$${index}, '%')`;
         params.push(obj[w]);
-        if (index < keys.length - 1) {
+        if (index < keys.length) {
             sql += ` and`
         }
         index++;
@@ -131,7 +131,6 @@ async function getList(ctx, next) {
     delete obj.offset;
     delete obj.search;
     const keys = Object.keys(obj);
-    const values = Object.values(obj);
     let otherSql = ''
     keys.forEach((res, index) => {
         otherSql += 'and ' + convertColumn(res) + '=$' + (index + 4);
@@ -140,7 +139,7 @@ async function getList(ctx, next) {
     if (otherSql) {
         data = await pool.query(`SELECT * FROM ${getTableName(ctx.request.url)} where name like $1 ${otherSql} order by id ;`, [`%${ctx.request.query.search || ''}%`]);
     } else {
-        data = await pool.query(`SELECT * FROM ${getTableName(ctx.request.url)} order by id ;`);
+        data = await pool.query(`SELECT * FROM ${getTableName(ctx.request.url)} where name like $1 order by id ;`, [`%${ctx.request.query.search || ''}%`]);
     }
     const total = await pool.query(`SELECT count(id) FROM ${getTableName(ctx.request.url)} where name like $1`, [`%${ctx.request.query.search || ''}%`]);
     const list = covertColumnByType(data.rows, 2)
@@ -203,7 +202,7 @@ async function updateById(ctx, next) {
         }
     }
     columns = columns.slice(0, columns.length - 1)
-    const data = await pool.query(`
+    await pool.query(`
     update  ${getTableName(ctx.request.url)}
     set ${columns}
     where id = $1`, [ctx.request.body.id]);
@@ -234,9 +233,11 @@ async function getApi(ctx, next) {
     %${ctx.request.query.search}
     %
     ` + arr[1].replace(/[^&]+/, '')
-        console.log(arr, url);
     }
-    ctx.set('X-Response-Url', url);
+    try {
+        ctx.set('X-Response-Url', url);
+    } catch (e) {
+    }
     const response = await request({
         method: ctx.method, url: refUrl + url, headers: {
             "content-type": ctx.header['content-type'],
@@ -282,7 +283,10 @@ function stringToNull(val) {
     return val === null ? val : "'" + val + "'"
 }
 
+//秒转化成时分秒的结构
+
 module.exports = {
+    refUrl,
     deleteById,
     validLogin,
     getApi,

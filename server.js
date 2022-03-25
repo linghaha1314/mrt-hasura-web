@@ -15,7 +15,7 @@ const fs = require("fs");
 //编译后静态路径
 const staticPath = './frontend';
 //crud服务
-const refUrl = "http://zyk.mrtcloud.com:8888/";
+const refUrl = "http://zyk.mrtcloud.com:8888";
 const mime = require('mime-types')
 app.keys = ['kbds random secret'];
 app.use(session(app));
@@ -67,7 +67,7 @@ app.use(function (ctx, next) {
 });
 
 // 不过滤的请求路径
-const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/swiper\/getListByPage/, /\/courses\/getDataById/];
+const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/swiper\/getListByPage/, /\/courses\/getDataById/, /\/comment.*$/];
 // Middleware below this line is only reached if JWT token is valid
 app.use(jwt({
     secret: 'kbds random secret'
@@ -80,6 +80,17 @@ app.use(jwt({
 app.use(async (ctx, next) => {
     const url = (ctx.request.url.replace(/([?][^?]+)$/, ''))
     ctx.request.realUrl = ctx.request.url
+    if (ctx.request.url.indexOf('/api') > -1) {
+        ctx.set('X-Response-Url', url);
+        const response = await request({
+            method: ctx.method, url: refUrl + ctx.request.url, headers: {
+                "content-type": ctx.header['content-type'],
+            }, body: ctx.request.body, json: true
+        });
+        ctx.body = {
+            data: response, success: true, msg: '查询成功！'
+        }
+    }
     switch (url.split('/')[2]) {
         case 'create':
             ctx.request.url = '/create'

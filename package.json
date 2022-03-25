@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "docxtemplater": "^3.29.0",
     "jsonwebtoken": "^8.5.1",
     "koa": "^2.13.4",
     "koa-body": "^4.2.0",
@@ -21,6 +22,7 @@
     "koa-static": "^5.0.0",
     "koa2-cors": "^2.0.6",
     "pg": "^8.7.1",
+    "pizzip": "^3.1.1",
     "request": "^2.88.2",
     "request-promise": "^4.2.6"
   },

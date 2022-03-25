@@ -10,6 +10,7 @@ const {
     updateById,
     create,
     deleteById,
+    refUrl,
     changeDataTree,
     covertColumnByType,
     dictionaryDataByTypeCode,
@@ -21,6 +22,7 @@ const {
 const fs = require("fs");
 const path = require("path");
 const pool = require("../utils/pool");
+const request = require("request");
 
 module.exports = (router) => {
     //基础接口
@@ -73,7 +75,6 @@ module.exports = (router) => {
     router.post(`/updateById`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await updateById(ctx, next);
-        console.log('===>>>', data);
         if (data) {
             ctx.body = {
                 data: data, success: true, msg: '更新成功！'
@@ -88,7 +89,6 @@ module.exports = (router) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getDataById(ctx, next);
         if (data) {
-            console.log('???', data)
             ctx.body = {
                 data: data[0], success: true, msg: '查询成功！'
             }
@@ -104,6 +104,27 @@ module.exports = (router) => {
         if (data) {
             ctx.body = {
                 data: data, success: true, msg: '删除成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '删除失败！'
+        }
+    });
+    router.get(`/api`, async (ctx, next) => {
+        // ctx.set('X-Response-Url', refUrl + ctx.request.url);
+        const response = await request({
+            method: ctx.request.url.indexOf('get') ? 'GET' : ctx.method,
+            url: refUrl + ctx.request.realUrl.replace(/\/api\/rest/, ''),
+            headers: {
+                "content-type": ctx.header['content-type'],
+            },
+            body: ctx.request.body,
+            json: true
+        });
+        if (response) {
+            ctx.body = {
+                data: [], success: true, msg: '删除成功！'
             }
             return;
         }
@@ -127,7 +148,7 @@ module.exports = (router) => {
     });
 
     //自定义接口
-    router.post('/login', async (ctx, next) => {
+    router.post('/login', async (ctx) => {
         const result = await validLogin(ctx.request.body);
         ctx.body = result.success ? {
             ...result, token: jsonwebtoken.sign({
@@ -195,7 +216,7 @@ module.exports = (router) => {
             delete data.list['roleList']
         })
         ctx.body = {
-            list: data.list, total: data.total, success: true, msg: '查询成功！'
+            list: data.list, total: data.total['aggregate'].count, success: true, msg: '查询成功！'
         }
     });
     router.post(`/user/deleteUserById`, async (ctx, next) => {
@@ -212,7 +233,8 @@ module.exports = (router) => {
         const roles = ctx.request.body['roles']
         delete ctx.request.body['roles']
         const data = await updateById(ctx, next);
-        //先价差有没有，没有在
+        //先查询角色信息是否已经有了；有了就不新增；
+        pool.query(`delete from kb_user_role where user_id=$1`, [ctx.request.body.id])
         roles.forEach(res => {
             pool.query(`insert into  kb_user_role (user_id,role_id) VALUES($1,$2);`, [ctx.request.body.id, res]);
         })
@@ -224,6 +246,80 @@ module.exports = (router) => {
         }
         ctx.body = {
             success: false, msg: '更新失败！'
+        }
+    });
+    router.post(`/exam/insert`, async (ctx) => {
+        //先创建试卷；
+        const examPaper = {
+            request: {
+                url: '/examPaper/create', body: {
+                    name: ctx.request.body.name,
+                    totalScore: ctx.request.body.totalScore,
+                    number: ctx.request.body.number
+                },
+            }
+        }
+        const paperResult = await create(examPaper);
+        //再创建题目；
+        for (const res of ctx.request.body['questionList']) {
+            const examTitle = {
+                request: {
+                    url: '/examTitle/create', body: {
+                        name: res.name, type: res.type, score: res.score, sequence: res.sequence,
+                    },
+                }
+            }
+            const titleResult = await create(examTitle);
+            //创建题目后，要创建试卷和试题的联合表
+            const examPaperTitle = {
+                request: {
+                    url: '/examPaperTitle/create', body: {
+                        paperId: paperResult.rows[0].id,
+                        titleId: titleResult.rows[0].id,
+                        score: res.score,
+                        sequence: res.sequence
+                    },
+                }
+            }
+            const paperTitleResult = await create(examPaperTitle);
+            //在创建选项；
+            for (const dd of res.options) {
+                const index = res.options.indexOf(dd);
+                const examOptions = {
+                    request: {
+                        url: '/examOptions/create', body: {
+                            name: dd.name, titleId: titleResult.rows[0].id, isRight: dd.isRight, sequence: index + 1
+                        },
+                    }
+                }
+                const optionResult = await create(examOptions);
+            }
+        }
+    });
+    router.post(`/exam/getQuestionList`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx, next);
+        const list = []
+        data.list.forEach(res => {
+            res = {...res, ...res['titleData']}
+            const resultOption = []
+            res.options.forEach(r => {
+                if (r.isRight) {
+                    resultOption.push(r.id)
+                }
+            })
+            res.resultOption = res.type === 'radio' ? resultOption[0] : resultOption
+            delete res['titleData']
+            list.push(res)
+        })
+        if (data) {
+            ctx.body = {
+                list: list, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '失败！'
         }
     });
 
@@ -241,6 +337,15 @@ module.exports = (router) => {
     router.get(`/chapters/getListByCourseId`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = (await getApi(ctx, next)).data;
+        data.list.forEach(res => {
+            res['recordChapter'].forEach(rr => {
+                if (rr.completed) {
+                    res.completed = true;
+                } else {
+                    res.studyTime = rr.studyTime
+                }
+            })
+        })
         const parentData = data.list.filter(res => !res.parentId);
         const childData = data.list.filter(res => res.parentId);
         getMenuTree(parentData, childData); //如果存在父子关系，变成树状结构
@@ -248,10 +353,123 @@ module.exports = (router) => {
             list: parentData, total: data.total.count, success: true, msg: '查询成功！'
         }
     });
+    router.post(`/watchRecord/record`, async (ctx, next) => {
+        const selectIsHasCtx = {
+            request: {
+                query: {
+                    staffId: ctx.request.body['staffId'],
+                    courseId: ctx.request.body['courseId'],
+                    chapterId: ctx.request.body['chapterId'],
+                    sort: 'startDate',
+                    limit: 1
+                }, url: ctx.request.realUrl
+            }
+        }
+        const data = await getListByPage(selectIsHasCtx);
+        if (data.list.length === 0 || data.list[0].completed) {
+            const res = data.list[0]
+            if (data.list[0].completed && res.studyTime + 5 < res['totalTime']) {
+                await create(ctx, next);
+            }
+        } else {
+            const res = data.list[0]
+            ctx.request.body.id = res.id
+            ctx.request.body.endDate = (new Date).toISOString().replace(/Z/, "+00");
+            if (res.studyTime + 5 >= res['totalTime']) {
+                ctx.request.body.completed = true
+                ctx.request.body.studyTime = res['totalTime']
+                await updateById(ctx, next);
+                const cc = {
+                    request: {
+                        method: 'GET',
+                        url: `/watchRecord/getStaffCompleted?courseId=${ctx.request.body['courseId']}&staffId=${ctx.request.body['staffId']}`,
+                        query: {
+                            limit: 1000, offset: 0
+                        }
+                    }, header: ctx.header
+
+                }
+                //完成的章节数目;
+                const result = await getApi(cc);
+                console.log(result, result.data[0]['courseData']['videoNumber'] === result.data.length)
+                if (result.data.length > 0 && result.data[0]['courseData']['videoNumber'] === result.data.length) {
+                    //修改观看课程的状态；
+                    await pool.query(`update kb_watch_record set course_completed=true where course_id = $1`, [ctx.request.body['courseId']]);
+                    //给个人加学分！
+                    await pool.query(`update kb_user set credits=$1 where id = $2`, [result.data[0]['courseData']['credits'], ctx.request.body['staffId']]);
+                }
+            } else {
+                await updateById(ctx, next);
+            }
+        }
+        if (data) {
+            ctx.body = {
+                id: data, success: true, msg: '记录成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '记录失败！'
+        }
+    })
+    router.get(`/collectCourse/getDataListByPage`, async (ctx, next) => {
+        const data = await getApi(ctx, next);
+        ctx.body = {
+            list: data.list, total: data.total, success: true, msg: '查询成功！'
+        }
+    });
+    router.get(`/comment/getStaffCommentListByPage`, async (ctx, next) => {
+        const data = await getApi(ctx, next);
+        ctx.body = {
+            list: data.list, total: data.total, success: true, msg: '查询成功！'
+        }
+    });
+    router.get(`/course/getCourseById`, async (ctx, next) => {
+        const studyCtx = {
+            request: {
+                method: 'GET', url: `/watchRecord/getStaffNumberByCourseId?courseId=${ctx.request.query.id}`, json: true
+            }, header: {
+                "content-type": 'text/plain; charset=utf-8',
+            },
+        }
+        const studyStaffNumber = (await getApi(studyCtx)).studyStaffNumber.total.count;
+        const data = await getApi(ctx, next);
+        const result = data.data[0];
+        result.typeName = result.courseType?.name
+        result.studyStaffNumber = studyStaffNumber
+        delete result.courseType
+        ctx.body = {
+            data: result, total: data.total, success: true, msg: '查询成功！'
+        }
+    });
+    router.post(`/cert/download`, async (ctx) => {
+        const PizZip = require('pizzip');
+        const Docxtemplater = require('docxtemplater');
+        const fs = require('fs');
+        const path = require('path');
+        // 读取文件,以二进制文件形式保存
+        const content = fs.readFileSync(path.resolve('/Users/mac/wzr/资源库/hasura-web/attachs/test.docx'), 'binary');
+        // 压缩数据
+        const zip = new PizZip(content);
+        // 生成模板文档
+        const doc = new Docxtemplater(zip);
+        // 设置填充数据
+        doc.setData({
+            name: 'John', title: 'Doe', typeName: '0652455478'
+        });
+        //渲染数据生成文档
+        doc.render()
+        // 将文档转换文nodejs能使用的buf
+        const buf = doc.getZip().generate({type: 'nodebuffer'});
+        // 输出文件
+        fs.writeFileSync(path.resolve(__dirname, 'output.docx'), buf);
+        ctx.body = {
+            list: data.list, total: data.total, success: true, msg: '查询成功！'
+        }
+    });
 
     //读取图片
     router.get('/attachs/:name', ctx => {
-        console.log(ctx, ctx.url)
         try {
             const filePath = path.join(__dirname.split('/router')[0], ctx.url);
             const file = fs.readFileSync(filePath);
