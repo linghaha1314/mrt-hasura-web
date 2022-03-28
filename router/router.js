@@ -467,7 +467,6 @@ module.exports = (router) => {
             list: data.list, total: data.total, success: true, msg: '查询成功！'
         }
     });
-
     //读取图片
     router.get('/attachs/:name', ctx => {
         try {

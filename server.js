@@ -67,7 +67,7 @@ app.use(function (ctx, next) {
 });
 
 // 不过滤的请求路径
-const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/swiper\/getListByPage/, /\/courses\/getDataById/, /\/comment.*$/];
+const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/swiper\/getListByPage/, /\/comment.*$/, /\/courseType\/getList/, /\/course.*$/, /\/api.*$/];
 // Middleware below this line is only reached if JWT token is valid
 app.use(jwt({
     secret: 'kbds random secret'
@@ -80,6 +80,7 @@ app.use(jwt({
 app.use(async (ctx, next) => {
     const url = (ctx.request.url.replace(/([?][^?]+)$/, ''))
     ctx.request.realUrl = ctx.request.url
+    console.log(ctx.request.realUrl)
     if (ctx.request.url.indexOf('/api') > -1) {
         ctx.set('X-Response-Url', url);
         const response = await request({
@@ -87,34 +88,36 @@ app.use(async (ctx, next) => {
                 "content-type": ctx.header['content-type'],
             }, body: ctx.request.body, json: true
         });
+        console.log(response)
         ctx.body = {
             data: response, success: true, msg: '查询成功！'
         }
-    }
-    switch (url.split('/')[2]) {
-        case 'create':
-            ctx.request.url = '/create'
-            break;
-        case 'deleteById':
-            ctx.request.url = '/deleteById'
-            break;
-        case 'getList':
-            ctx.request.url = '/getList'
-            break;
-        case 'getListByPage':
-            ctx.request.url = '/getListByPage'
-            break;
-        case 'getDataById':
-            ctx.request.url = '/getDataById'
-            break;
-        case 'updateById':
-            ctx.request.url = '/updateById'
-            break;
-        case 'deleteMultiple':
-            ctx.request.url = '/deleteMultiple'
-            break;
-        default:
-            break;
+    } else {
+        switch (url.split('/')[2]) {
+            case 'create':
+                ctx.request.url = '/create'
+                break;
+            case 'deleteById':
+                ctx.request.url = '/deleteById'
+                break;
+            case 'getList':
+                ctx.request.url = '/getList'
+                break;
+            case 'getListByPage':
+                ctx.request.url = '/getListByPage'
+                break;
+            case 'getDataById':
+                ctx.request.url = '/getDataById'
+                break;
+            case 'updateById':
+                ctx.request.url = '/updateById'
+                break;
+            case 'deleteMultiple':
+                ctx.request.url = '/deleteMultiple'
+                break;
+            default:
+                break;
+        }
     }
     await next();
 });
