@@ -366,9 +366,11 @@ module.exports = (router) => {
             }
         }
         const data = await getListByPage(selectIsHasCtx);
-        if (data.list.length === 0 || data.list[0].completed) {
+        if (data.list.length === 0) {
+            await create(ctx, next);
+        } else if (data.list[0].completed) {
             const res = data.list[0]
-            if (data.list[0].completed && res.studyTime + 5 < res['totalTime']) {
+            if (res.studyTime + 5 < res['totalTime']) {
                 await create(ctx, next);
             }
         } else {
