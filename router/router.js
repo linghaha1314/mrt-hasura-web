@@ -230,7 +230,7 @@ module.exports = (router) => {
     });
     router.post(`/user/updateUserById`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
-        const roles = ctx.request.body['roles']
+        const roles = ctx.request.body['roles'] || []
         delete ctx.request.body['roles']
         const data = await updateById(ctx, next);
         //先查询角色信息是否已经有了；有了就不新增；
@@ -420,10 +420,18 @@ module.exports = (router) => {
             list: data.list, total: data.total, success: true, msg: '查询成功！'
         }
     });
-    router.get(`/comment/getStaffCommentListByPage`, async (ctx, next) => {
+    router.post(`/comment/getCommentListByPage`, async (ctx, next) => {
         const data = await getApi(ctx, next);
+        const listData = [];
+        (data.data.list || []).forEach((res) => {
+            let obj = res;
+            obj = {...obj, ...res['courseData'], ...res['userData']}
+            delete obj['courseData'];
+            delete obj['userData'];
+            listData.push(obj)
+        })
         ctx.body = {
-            list: data.list, total: data.total, success: true, msg: '查询成功！'
+            list: listData, total: data.data.total.count, success: true, msg: '查询成功！'
         }
     });
     router.get(`/course/getCourseById`, async (ctx, next) => {
