@@ -360,7 +360,7 @@ module.exports = (router) => {
                     staffId: ctx.request.body['staffId'],
                     courseId: ctx.request.body['courseId'],
                     chapterId: ctx.request.body['chapterId'],
-                    sort: 'startDate',
+                    sort: 'sequence desc',
                     limit: 1
                 }, url: ctx.request.realUrl
             }
@@ -370,7 +370,8 @@ module.exports = (router) => {
             await create(ctx, next);
         } else if (data.list[0].completed) {
             const res = data.list[0]
-            if (res.studyTime + 5 < res['totalTime']) {
+            if (res.studyTime + 5 >= res['totalTime'] && ctx.request.body.studyTime === 1) {
+                ctx.request.body.courseCompleted = res.courseCompleted
                 await create(ctx, next);
             }
         } else {
@@ -393,7 +394,6 @@ module.exports = (router) => {
                 }
                 //完成的章节数目;
                 const result = await getApi(cc);
-                console.log(result, result.data[0]['courseData']['videoNumber'] === result.data.length)
                 if (result.data.length > 0 && result.data[0]['courseData']['videoNumber'] === result.data.length) {
                     //修改观看课程的状态；
                     await pool.query(`update kb_watch_record set course_completed=true where course_id = $1`, [ctx.request.body['courseId']]);
@@ -465,16 +465,19 @@ module.exports = (router) => {
         const doc = new Docxtemplater(zip);
         // 设置填充数据
         doc.setData({
-            name: 'John', title: 'Doe', typeName: '0652455478'
+            name: ctx.request.body['staffName'],
+            title: ctx.request.body.name,
+            typeName: ctx.request.body.name,
+            date: ctx.request.body['date']
         });
         //渲染数据生成文档
         doc.render()
         // 将文档转换文nodejs能使用的buf
         const buf = doc.getZip().generate({type: 'nodebuffer'});
         // 输出文件
-        fs.writeFileSync(path.resolve(__dirname, 'output.docx'), buf);
+        fs.writeFileSync(path.resolve(__dirname, ctx.request.body['staffName'] + '-' + ctx.request.body.name + '.docx'), buf);
         ctx.body = {
-            list: data.list, total: data.total, success: true, msg: '查询成功！'
+            success: true, msg: '查询成功！'
         }
     });
     //读取图片

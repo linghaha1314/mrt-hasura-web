@@ -90,14 +90,7 @@ async function getListByPage(ctx) {
     delete obj.offset;
     delete obj.sort;
     const keys = Object.keys(obj);
-    const values = Object.values(obj);
-    let sortKey = 'id'
-    keys.forEach((res, index) => {
-        if (res === 'sort') {
-            sortKey = convertColumn(values[index])
-            values.splice(index, 1);
-        }
-    })
+    let sortKey = ctx.request.query.sort || 'id'
     const params = [];
     let sql = '';
     if (keys.length > 0) {
@@ -124,7 +117,6 @@ async function getListByPage(ctx) {
     }
 }
 
-//
 async function getList(ctx, next) {
     const obj = JSON.parse(JSON.stringify(ctx.request.query));
     delete obj.limit;
