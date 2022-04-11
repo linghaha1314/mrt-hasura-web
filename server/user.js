@@ -211,6 +211,24 @@ async function dictionaryDataByTypeCode(ctx, next) {
     return covertColumnByType(result.rows, 2)
 }
 
+//查
+async function getBeforeNext(ctx, next) {
+    const idName = ctx.request.body.id;
+    // const valueList = Object.values(ctx.request.body)
+//     const sql = `SELECT * FROM ${getTableName(ctx.request.url)} where sequence > ${idName} and not exists(select 1 from ${getTableName(ctx.request.url)} where sequence > ${idName} and
+// sequence < ${idName} )`
+    const sql = `select * from ${getTableName(ctx.request.url)} a
+where sequence > ${idName} and not exists(select 1 from ${getTableName(ctx.request.url)} where sequence > ${idName} and
+sequence < a.sequence )
+or
+sequence < ${idName} and not exists(select 1 from ${getTableName(ctx.request.url)} where sequence < ${idName} and
+sequence > a.sequence )`
+    console.log(sql,5555)
+    const data = await pool.query(sql)
+    console.log(data,9999)
+    return covertColumnByType(data.rows, 2)
+}
+
 //转发请求
 async function getApi(ctx, next) {
     let url = ctx.request.url;
@@ -289,6 +307,7 @@ module.exports = {
     create,
     updateById,
     getDataById,
+    getBeforeNext,
     deleteMultiple,
     covertColumnByType,
     dictionaryDataByTypeCode

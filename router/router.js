@@ -10,6 +10,7 @@ const {
     updateById,
     create,
     deleteById,
+    getBeforeNext,
     refUrl,
     changeDataTree,
     covertColumnByType,
@@ -91,6 +92,19 @@ module.exports = (router) => {
         if (data) {
             ctx.body = {
                 data: data[0], success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    });
+    router.post(`/getBeforeNext`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getBeforeNext(ctx, next);
+        if (data) {
+            ctx.body = {
+                data: data, success: true, msg: '查询成功！'
             }
             return;
         }
