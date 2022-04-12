@@ -67,7 +67,7 @@ app.use(function (ctx, next) {
 });
 
 // 不过滤的请求路径
-const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/swiper\/getListByPage/, /\/getListByPage/, /\/getByTypeCode/, /\/courses\/getDataById/, /\/comment.*$/];
+const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/swiper\/getListByPage/, /\/getListByPage/, /\/getByTypeCode/,  /\/getBeforeNext/,/\/courses\/getDataById/, /\/comment.*$/];
 // Middleware below this line is only reached if JWT token is valid
 app.use(jwt({
     secret: 'kbds random secret'
