@@ -98,7 +98,7 @@ async function getListByPage(ctx) {
     }
     let index = 1;
     for (const w in obj) {
-        sql += convertColumn(w).indexOf('id') > -1 ? ` ${convertColumn(w)}=$${index}` : ` ${convertColumn(w)} like concat('%',$${index}, '%')`;
+        sql += (convertColumn(w).indexOf('id') > -1 || convertColumn(w).indexOf('status') > -1) ? ` ${convertColumn(w)}=$${index}` : ` ${convertColumn(w)} like concat('%',$${index}, '%')`;
         params.push(obj[w]);
         if (index < keys.length) {
             sql += ` and`
@@ -225,9 +225,9 @@ sequence < a.sequence )
 or
 sequence < ${idName} and not exists(select 1 from ${getTableName(ctx.request.url)} where sequence < ${idName} and
 sequence > a.sequence )`
-    console.log(sql,5555)
+    console.log(sql, 5555)
     const data = await pool.query(sql)
-    console.log(data,9999)
+    console.log(data, 9999)
     return covertColumnByType(data.rows, 2)
 }
 
