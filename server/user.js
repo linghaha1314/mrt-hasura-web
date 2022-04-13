@@ -151,7 +151,7 @@ async function getDataById(ctx, next) {
 }
 
 //增
-async function create(ctx, next) {
+async function create(ctx) {
     const columns = Object.keys(ctx.request.body);
     const keyList = covertColumnByType(columns)
     const valueList = Object.values(ctx.request.body)
@@ -168,8 +168,10 @@ async function create(ctx, next) {
 
 //删
 async function deleteById(ctx, next) {
+    const keys = Object.keys(ctx.request.body)
+    const values = Object.values(ctx.request.body)
     const data = await pool.query(`
-    delete from ${getTableName(ctx.request.url)} where id = $1`, [ctx.request.body.id]);
+    delete from ${getTableName(ctx.request.url)} where ${convertColumn(keys[0])} = $1`, [values[0]]);
     return data
 }
 

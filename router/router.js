@@ -3,6 +3,7 @@ const mime = require('mime-types')
 const koaBody = require('koa-body')({
     multipart: true, uploadDir: '.'
 })
+
 const {
     getApi,
     validLogin,
@@ -23,6 +24,7 @@ const fs = require("fs");
 const path = require("path");
 const pool = require("../utils/pool");
 const request = require("request");
+// const {default: xlsx} = require("node-xlsx");
 
 module.exports = (router) => {
     //基础接口
@@ -111,7 +113,7 @@ module.exports = (router) => {
             success: false, msg: '删除失败！'
         }
     });
-    router.get(`/api`, async (ctx, next) => {
+    router.get(`/api`, async (ctx) => {
         // ctx.set('X-Response-Url', refUrl + ctx.request.url);
         const response = await request({
             method: ctx.request.url.indexOf('get') ? 'GET' : ctx.method,
@@ -132,6 +134,28 @@ module.exports = (router) => {
             success: false, msg: '删除失败！'
         }
     });
+    //批量导入
+    router.post(`/import`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const newCtx = ctx;
+        let count = 0;
+        for (const res of ctx.request.body) {
+            newCtx.request.body = res
+            const data = await create(newCtx, next);
+            if (data.rowCount > 0) {
+                count += data.rowCount
+            }
+        }
+        if (count > 0) {
+            ctx.body = {
+                insertCount: count, success: true, msg: '添加成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '新增失败！'
+        }
+    });
     //字典数据获取
     router.post(`/dictionaryData/getByTypeCode`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
@@ -144,6 +168,38 @@ module.exports = (router) => {
         }
         ctx.body = {
             success: false, msg: '失败！'
+        }
+    });
+    //菜单授权
+    router.post(`/roleAuthority/update`, async (ctx, next) => {
+        const newCtx = {
+            request: {
+                url: '/roleAuthority/deleteById', body: {
+                    roleId: ctx.request.body.roleId
+                }
+            }
+        }
+        await deleteById(newCtx, next);
+        const menuIds = ctx.request.body['menuIds'] || []
+        menuIds.forEach(res => {
+            const createNewCtx = {
+                request: {
+                    url: '/roleAuthority/create', body: {
+                        roleId: ctx.request.body.roleId, menuId: res
+                    }
+                }
+
+            }
+            create(createNewCtx, next);
+        })
+
+        ctx.body = {
+            success: true, msg: '授权成功！'
+        }
+    });
+    router.post(`/moreTable`, async (ctx, next) => {
+        ctx.body = {
+            success: true, msg: '授权成功！'
         }
     });
 
@@ -166,10 +222,12 @@ module.exports = (router) => {
         }
     });
     router.post(`/user/resetPass`, async (ctx, next) => {
+        ctx.request.url = '/user/updateById'
+        ctx.request.body.change = {password: '123456'}
         const data = await getApi(ctx, next);
         if (data) {
             ctx.body = {
-                id: data.data['returning'][0].id, success: true, msg: '重置成功！'
+                id: data, success: true, msg: '重置成功！'
             }
             return;
         }
@@ -182,6 +240,20 @@ module.exports = (router) => {
         const data = await getApi(ctx, next);
         const parentData = data.list.filter(res => !res.parentId);
         const childData = data.list.filter(res => res.parentId);
+        getMenuTree(parentData, childData);
+        ctx.body = {
+            success: true, msg: '获取成功', list: parentData
+        }
+    });
+    router.post(`/roleAuthority/getMenusByRoleId`, async (ctx, next) => {
+        const data = await getApi(ctx, next);
+        const list = [];
+        data.list.forEach(res => {
+            list.push(res['menuData'])
+        })
+        console.log(list)
+        const parentData = list.filter(res => !res.parentId);
+        const childData = list.filter(res => res.parentId);
         getMenuTree(parentData, childData);
         ctx.body = {
             success: true, msg: '获取成功', list: parentData
@@ -479,6 +551,29 @@ module.exports = (router) => {
         ctx.body = {
             success: true, msg: '查询成功！'
         }
+    });
+
+    router.post(`/attachs/toJson`, async (ctx) => {
+        const fs = require('fs');
+        const xlsx = require('node-xlsx').default;
+        // 输出文件
+        if (ctx.request.body.status !== 1) {
+            //读取前端传过来的文件；转化成json;
+            //然后数据库语句循环执行；
+            const workSheetsFromBuffer = xlsx.parse(fs.readFileSync(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`));
+            const workSheetsFromFile = xlsx.parse(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`);
+            console.log(workSheetsFromBuffer, workSheetsFromFile)
+            ctx.body = {
+                success: true, msg: '查询成功！'
+            }
+        } else {
+            //获取当前的数据数组；然后生成文件流返回给前端
+            const data = [[1, 2, 3], [true, false, null, 'sheetjs'], ['foo', 'bar', new Date('2014-02-19T14:30Z'), '0.3'], ['baz', null, 'qux'],];
+            const buffer = xlsx.build([{name: 'mySheetName', data: data}]);
+            fs.writeFileSync('./attachs/the_content.xlsx', buffer, {'flag': 'w'});
+            console.log(buffer)
+        }
+
     });
     //读取图片
     router.get('/attachs/:name', ctx => {

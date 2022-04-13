@@ -80,7 +80,6 @@ app.use(jwt({
 app.use(async (ctx, next) => {
     const url = (ctx.request.url.replace(/([?][^?]+)$/, ''))
     ctx.request.realUrl = ctx.request.url
-    console.log(ctx.request.realUrl)
     if (ctx.request.url.indexOf('/api') > -1) {
         ctx.set('X-Response-Url', url);
         const response = await request({
@@ -88,7 +87,6 @@ app.use(async (ctx, next) => {
                 "content-type": ctx.header['content-type'],
             }, body: ctx.request.body, json: true
         });
-        console.log(response)
         ctx.body = {
             data: response, success: true, msg: '查询成功！'
         }
@@ -114,6 +112,9 @@ app.use(async (ctx, next) => {
                 break;
             case 'deleteMultiple':
                 ctx.request.url = '/deleteMultiple'
+                break;
+            case 'import':
+                ctx.request.url = '/import'
                 break;
             default:
                 break;
