@@ -75,6 +75,10 @@ module.exports = (router) => {
             list: parentData, total: data.total, success: true, msg: '查询成功！'
         }
     });
+    // router.get(`/getMoreTableListByPage`, async (ctx, next) => {
+    //     //传入一个inner对象；table:[''],on的
+    //     // select * from a inner join b on a.id==b.id
+    // });
     router.post(`/updateById`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await updateById(ctx, next);
@@ -140,12 +144,12 @@ module.exports = (router) => {
         });
         if (response) {
             ctx.body = {
-                data: [], success: true, msg: '删除成功！'
+                data: [], success: true, msg: '成功！'
             }
             return;
         }
         ctx.body = {
-            success: false, msg: '删除失败！'
+            success: false, msg: '失败！'
         }
     });
     //批量导入
@@ -265,7 +269,6 @@ module.exports = (router) => {
         data.list.forEach(res => {
             list.push(res['menuData'])
         })
-        console.log(list)
         const parentData = list.filter(res => !res.parentId);
         const childData = list.filter(res => res.parentId);
         getMenuTree(parentData, childData);
@@ -404,6 +407,60 @@ module.exports = (router) => {
             }
             return;
         }
+        ctx.body = {
+            success: false, msg: '失败！'
+        }
+    });
+    router.get(`/lecturer/getLecturerListByPage`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx, next);
+        const list = [];
+        data.list.forEach(res => {
+            let obj = {...res['userData'], ...res}
+            //如果存在才替换，否则不替换；
+            delete obj['userData']
+            obj = {...obj, ...obj['sectionData'], ...obj['majorName']}
+            delete obj['sectionData']
+            delete obj['majorData']
+            list.push(obj)
+        })
+        if (data) {
+            ctx.body = {
+                list: list, total: data['totalData']['aggregate'].count, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '失败！'
+        }
+    });
+    router.get(`/courseFiles/update`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const deleteCtx = {
+            request: {
+                body: {
+                    courseId: ctx.request.body.courseId
+                }
+            }, url: '/courseFiles/deleteById'
+        }
+        await deleteById(deleteCtx, next);
+        for (const res of ctx.request.body.files) {
+            const newCtx = {
+                request: {
+                    body: {
+                        ...res, courseId: ctx.request.body.courseId
+                    }
+                }, url: '/courseFiles/create'
+            }
+            const data = await create(newCtx, next);
+            console.log(data)
+        }
+        // if (data) {
+        //     ctx.body = {
+        //         list: list, total: data['totalData']['aggregate'].count, success: true, msg: '查询成功！'
+        //     }
+        //     return;
+        // }
         ctx.body = {
             success: false, msg: '失败！'
         }
@@ -576,7 +633,7 @@ module.exports = (router) => {
             //然后数据库语句循环执行；
             const workSheetsFromBuffer = xlsx.parse(fs.readFileSync(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`));
             const workSheetsFromFile = xlsx.parse(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`);
-            console.log(workSheetsFromBuffer, workSheetsFromFile)
+            // console.log(workSheetsFromBuffer, workSheetsFromFile)
             ctx.body = {
                 success: true, msg: '查询成功！'
             }
@@ -585,7 +642,7 @@ module.exports = (router) => {
             const data = [[1, 2, 3], [true, false, null, 'sheetjs'], ['foo', 'bar', new Date('2014-02-19T14:30Z'), '0.3'], ['baz', null, 'qux'],];
             const buffer = xlsx.build([{name: 'mySheetName', data: data}]);
             fs.writeFileSync('./attachs/the_content.xlsx', buffer, {'flag': 'w'});
-            console.log(buffer)
+            // console.log(buffer)
         }
 
     });
@@ -613,7 +670,7 @@ module.exports = (router) => {
                 }
             }
         } catch (err) {
-            console.log(`error ${err.message}`)
+            // console.log(`error ${err.message}`)
             // await ctx.render('error', {
             //     message: err.message
             // })
