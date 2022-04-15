@@ -90,7 +90,7 @@ async function getListByPage(ctx) {
     delete obj.offset;
     delete obj.sort;
     const keys = Object.keys(obj);
-    let sortKey = ctx.request.query.sort || 'id'
+    let sortKey = ctx.request.query.sort ? (ctx.request.query.sort + ((ctx.request.query.sort.indexOf('asc') > -1 || ctx.request.query.sort.indexOf('desc') > -1) ? '' : ' desc')) : 'created desc'
     const params = [];
     let sql = '';
     if (keys.length > 0) {

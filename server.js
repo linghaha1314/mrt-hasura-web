@@ -11,12 +11,11 @@ const control = require('./router/router');
 const request = require('request-promise');
 const cors = require('koa2-cors');
 const jsonwebtoken = require("jsonwebtoken");
-const fs = require("fs");
 //编译后静态路径
 const staticPath = './frontend';
 //crud服务
 const refUrl = "http://zyk.mrtcloud.com:8888";
-const mime = require('mime-types')
+
 app.keys = ['kbds random secret'];
 app.use(session(app));
 //应用静态资源
@@ -66,13 +65,15 @@ app.use(function (ctx, next) {
     });
 });
 
+
 // 不过滤的请求路径
-const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/swiper\/getListByPage/, /\/getListByPage/, /\/getByTypeCode/,  /\/getBeforeNext/,/\/courses\/getDataById/, /\/comment.*$/];
+const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/api.*$/, /\/swiper\/getListByPage/, /\/getListByPage/, /\/getByTypeCode/, /\/getBeforeNext/, /\/courses\/getDataById/, /\/comment.*$/, /\/courseType.*$/, /\/course.*$/];
 // Middleware below this line is only reached if JWT token is valid
 app.use(jwt({
     secret: 'kbds random secret'
 }).unless({
-    path: ignoreUrl,
+    // path: ignoreUrl,   //引入文件
+    path: ignoreUrl,   //引入文件
 }));
 
 
