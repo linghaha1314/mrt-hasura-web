@@ -434,35 +434,127 @@ module.exports = (router) => {
             success: false, msg: '失败！'
         }
     });
-    router.get(`/courseFiles/update`, async (ctx, next) => {
+    router.post(`/courseFiles/update`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const deleteCtx = {
             request: {
                 body: {
                     courseId: ctx.request.body.courseId
-                }
-            }, url: '/courseFiles/deleteById'
+                }, url: '/courseFiles/deleteById'
+            }
         }
         await deleteById(deleteCtx, next);
         for (const res of ctx.request.body.files) {
             const newCtx = {
                 request: {
                     body: {
-                        ...res, courseId: ctx.request.body.courseId
+                        name: res.name, path: res.path, courseId: ctx.request.body.courseId
                     }
                 }, url: '/courseFiles/create'
             }
             const data = await create(newCtx, next);
             console.log(data)
         }
-        // if (data) {
-        //     ctx.body = {
-        //         list: list, total: data['totalData']['aggregate'].count, success: true, msg: '查询成功！'
-        //     }
-        //     return;
-        // }
         ctx.body = {
             success: false, msg: '失败！'
+        }
+    });
+    router.post(`/courseVerify/update`, async (ctx, next) => {
+        const deleteCtx = {
+            request: {
+                body: {
+                    courseId: ctx.request.body.courseId
+                }, url: '/courseVerify/deleteById'
+            }
+        }
+        await deleteById(deleteCtx, next);
+        let sum = 0;
+        for (const res of ctx.request.body['verifyList']) {
+            const newCtx = {
+                request: {
+                    body: {
+                        time: res.time, typeId: res.typeId, courseId: ctx.request.body.courseId
+                    }, url: '/courseVerify/create'
+                }
+            }
+            const data = await create(newCtx, next);
+            console.log(data)
+            sum += data.rowCount
+        }
+        if (sum === ctx.request.body['verifyList'].length) {
+            ctx.body = {
+                data: sum, success: true, msg: '设置成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '失败！'
+        }
+    });
+    router.post(`/courses/createUpdate`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const typeIds = ctx.request.body.typeId
+        delete ctx.request.body.typeId
+        let result = {}
+        console.log(ctx.request.body)
+        if (!ctx.request.body.id) {
+            result = await create(ctx, next);
+        } else {
+            result = await updateById(ctx, next);
+        }
+        const deleteCtx = {
+            request: {
+                body: {
+                    courseId: ctx.request.body.id || result.id
+                }, url: '/courseClass/deleteById'
+            }
+        }
+        await deleteById(deleteCtx, next);
+        let sum = 0;
+        for (const res of typeIds) {
+            const newCtx = {
+                request: {
+                    body: {
+                        typeId: res, courseId: ctx.request.body.id || result.id
+                    }, url: '/courseClass/create'
+                }
+            }
+            const data = await create(newCtx, next);
+            sum += data.rowCount
+        }
+        if (sum === typeIds.length) {
+            ctx.body = {
+                data: sum, success: true, msg: '提交成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '提交失败！'
+        }
+    });
+    router.get(`/courses/getDataListByPage`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx)
+        const list = []
+        data.list.forEach(res => {
+            const obj = {
+                ...res, typeId: []
+            }
+            delete obj['typeIdList']
+            res['typeIdList'].forEach(rr => {
+                obj.typeId.push(rr.typeId)
+            })
+            list.push(obj)
+        })
+        console.log(list);
+        if (list) {
+            ctx.body = {
+                list: list,total:data.totalData.aggregate.count, success: true, msg: '提交成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '提交失败！'
         }
     });
 
@@ -596,56 +688,56 @@ module.exports = (router) => {
         }
     });
     router.post(`/cert/download`, async (ctx) => {
-        const PizZip = require('pizzip');
-        const Docxtemplater = require('docxtemplater');
-        const fs = require('fs');
-        const path = require('path');
-        // 读取文件,以二进制文件形式保存
-        const content = fs.readFileSync(path.resolve('/Users/mac/wzr/资源库/hasura-web/attachs/test.docx'), 'binary');
-        // 压缩数据
-        const zip = new PizZip(content);
-        // 生成模板文档
-        const doc = new Docxtemplater(zip);
-        // 设置填充数据
-        doc.setData({
-            name: ctx.request.body['staffName'],
-            title: ctx.request.body.name,
-            typeName: ctx.request.body.name,
-            date: ctx.request.body['date']
-        });
-        //渲染数据生成文档
-        doc.render()
-        // 将文档转换文nodejs能使用的buf
-        const buf = doc.getZip().generate({type: 'nodebuffer'});
-        // 输出文件
-        fs.writeFileSync(path.resolve(__dirname, ctx.request.body['staffName'] + '-' + ctx.request.body.name + '.docx'), buf);
-        ctx.body = {
-            success: true, msg: '查询成功！'
-        }
+        // const PizZip = require('pizzip');
+        // const Docxtemplater = require('docxtemplater');
+        // const fs = require('fs');
+        // const path = require('path');
+        // // 读取文件,以二进制文件形式保存
+        // const content = fs.readFileSync(path.resolve('/Users/mac/wzr/资源库/hasura-web/attachs/test.docx'), 'binary');
+        // // 压缩数据
+        // const zip = new PizZip(content);
+        // // 生成模板文档
+        // const doc = new Docxtemplater(zip);
+        // // 设置填充数据
+        // doc.setData({
+        //     name: ctx.request.body['staffName'],
+        //     title: ctx.request.body.name,
+        //     typeName: ctx.request.body.name,
+        //     date: ctx.request.body['date']
+        // });
+        // //渲染数据生成文档
+        // doc.render()
+        // // 将文档转换文nodejs能使用的buf
+        // const buf = doc.getZip().generate({type: 'nodebuffer'});
+        // // 输出文件
+        // fs.writeFileSync(path.resolve(__dirname, ctx.request.body['staffName'] + '-' + ctx.request.body.name + '.docx'), buf);
+        // ctx.body = {
+        //     success: true, msg: '查询成功！'
+        // }
     });
 
-    router.post(`/attachs/toJson`, async (ctx) => {
-        const fs = require('fs');
-        const xlsx = require('node-xlsx').default;
-        // 输出文件
-        if (ctx.request.body.status !== 1) {
-            //读取前端传过来的文件；转化成json;
-            //然后数据库语句循环执行；
-            const workSheetsFromBuffer = xlsx.parse(fs.readFileSync(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`));
-            const workSheetsFromFile = xlsx.parse(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`);
-            // console.log(workSheetsFromBuffer, workSheetsFromFile)
-            ctx.body = {
-                success: true, msg: '查询成功！'
-            }
-        } else {
-            //获取当前的数据数组；然后生成文件流返回给前端
-            const data = [[1, 2, 3], [true, false, null, 'sheetjs'], ['foo', 'bar', new Date('2014-02-19T14:30Z'), '0.3'], ['baz', null, 'qux'],];
-            const buffer = xlsx.build([{name: 'mySheetName', data: data}]);
-            fs.writeFileSync('./attachs/the_content.xlsx', buffer, {'flag': 'w'});
-            // console.log(buffer)
-        }
-
-    });
+    // router.post(`/attachs/toJson`, async (ctx) => {
+    //     const fs = require('fs');
+    //     const xlsx = require('node-xlsx').default;
+    //     // 输出文件
+    //     if (ctx.request.body.status !== 1) {
+    //         //读取前端传过来的文件；转化成json;
+    //         //然后数据库语句循环执行；
+    //         const workSheetsFromBuffer = xlsx.parse(fs.readFileSync(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`));
+    //         const workSheetsFromFile = xlsx.parse(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`);
+    //         // console.log(workSheetsFromBuffer, workSheetsFromFile)
+    //         ctx.body = {
+    //             success: true, msg: '查询成功！'
+    //         }
+    //     } else {
+    //         //获取当前的数据数组；然后生成文件流返回给前端
+    //         const data = [[1, 2, 3], [true, false, null, 'sheetjs'], ['foo', 'bar', new Date('2014-02-19T14:30Z'), '0.3'], ['baz', null, 'qux'],];
+    //         const buffer = xlsx.build([{name: 'mySheetName', data: data}]);
+    //         fs.writeFileSync('./attachs/the_content.xlsx', buffer, {'flag': 'w'});
+    //         // console.log(buffer)
+    //     }
+    //
+    // });
     //读取图片
     router.get('/attachs/:name', ctx => {
         try {

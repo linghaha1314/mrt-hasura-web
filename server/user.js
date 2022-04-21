@@ -170,6 +170,7 @@ async function create(ctx) {
 async function deleteById(ctx, next) {
     const keys = Object.keys(ctx.request.body)
     const values = Object.values(ctx.request.body)
+    console.log(ctx.request.url)
     const data = await pool.query(`
     delete from ${getTableName(ctx.request.url)} where ${convertColumn(keys[0])} = $1`, [values[0]]);
     return data
