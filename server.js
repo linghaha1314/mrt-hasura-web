@@ -53,15 +53,11 @@ app.use(async (ctx, next) => {
 //错误处理
 app.use(function (ctx, next) {
     return next().catch((err) => {
-        if (401 == err.status) {
-            ctx.status = 200;
-            ctx.body = {
-                status: 401, success: false, msg: 'Protected resource, use Authorization header to get access\n'
-            }
-        } else {
-            ctx.error = err;
-            throw err;
+        ctx.body = {
+            success: false, msg: err.stack
         }
+        ctx.error = err;
+        throw err;
     });
 });
 
@@ -72,7 +68,6 @@ const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$
 app.use(jwt({
     secret: 'kbds random secret'
 }).unless({
-    // path: ignoreUrl,   //引入文件
     path: ignoreUrl,   //引入文件
 }));
 
@@ -126,6 +121,7 @@ app.use(async (ctx, next) => {
     }
     await next();
 });
+
 //接口
 app
     .use(control(router).routes())

@@ -75,10 +75,6 @@ module.exports = (router) => {
             list: parentData, total: data.total, success: true, msg: '查询成功！'
         }
     });
-    // router.get(`/getMoreTableListByPage`, async (ctx, next) => {
-    //     //传入一个inner对象；table:[''],on的
-    //     // select * from a inner join b on a.id==b.id
-    // });
     router.post(`/updateById`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await updateById(ctx, next);
@@ -449,14 +445,14 @@ module.exports = (router) => {
                 request: {
                     body: {
                         name: res.name, path: res.path, courseId: ctx.request.body.courseId
-                    }
-                }, url: '/courseFiles/create'
+                    }, url: '/courseFiles/create'
+                }
             }
             const data = await create(newCtx, next);
             console.log(data)
         }
         ctx.body = {
-            success: false, msg: '失败！'
+            success: true, msg: '成功！'
         }
     });
     router.post(`/courseVerify/update`, async (ctx, next) => {
@@ -532,24 +528,76 @@ module.exports = (router) => {
             success: false, msg: '提交失败！'
         }
     });
-    router.get(`/courses/getDataListByPage`, async (ctx, next) => {
+    router.get(`/courses/getDataListByPage`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx)
         const list = []
+        console.log(data)
         data.list.forEach(res => {
             const obj = {
                 ...res, typeId: []
             }
-            delete obj['typeIdList']
-            res['typeIdList'].forEach(rr => {
+            delete obj['courseClass']
+            res['courseClass'].forEach(rr => {
                 obj.typeId.push(rr.typeId)
             })
             list.push(obj)
         })
-        console.log(list);
         if (list) {
             ctx.body = {
-                list: list,total:data.totalData.aggregate.count, success: true, msg: '提交成功！'
+                list: list, total: data.total.aggregate.count, success: true, msg: '提交成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '提交失败！'
+        }
+    });
+    router.post(`/approvalProcessSet/createData`, async (ctx) => {
+        const newCtx = {
+            request: {
+                body: {
+                    name: ctx.request.body['approval'].name || null,
+                }, url: '/approvalProcessSet/create'
+            },
+        }
+        const data = await create(newCtx)
+        for (const res of ctx.request.body['approval'].list) {
+            const createCtx = {
+                request: {
+                    body: {
+                        roleId: res.roleId || null, parentId: data.rows[0].id
+                    }, url: '/approvalProcessSet/create'
+                }
+            }
+            await create(createCtx)
+        }
+        if (true) {
+            ctx.body = {
+                total: 0, success: true, msg: '提交成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '提交失败！'
+        }
+    });
+    router.get(`/approvalProcessSet/getDataListByPage`, async (ctx) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx);
+        const list = [];
+        data.list.forEach(res => {
+            const obj = {...res, ...res['roleData']}
+            delete obj['roleData']
+            list.push(obj)
+        })
+        const parentData = list.filter(res => !res.parentId);
+        const childData = list.filter(res => res.parentId);
+        getMenuTree(parentData, childData);
+        console.log(list, parentData, childData)
+        if (true) {
+            ctx.body = {
+                list: parentData, total: data['totalData']['aggregate'].count, success: true, msg: '提交成功！'
             }
             return;
         }
