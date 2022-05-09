@@ -15,6 +15,7 @@ const {
     refUrl,
     changeDataTree,
     covertColumnByType,
+    deconstructionData,
     dictionaryDataByTypeCode,
     getList,
     getListByPage,
@@ -92,6 +93,7 @@ module.exports = (router) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getDataById(ctx, next);
         if (data) {
+            console.log(data)
             ctx.body = {
                 data: data[0], success: true, msg: '查询成功！'
             }
@@ -230,9 +232,11 @@ module.exports = (router) => {
     });
     router.get('/getUserInfo', async (ctx, next) => {
         const data = await getApi(ctx, next);
+        console.log(data.data)
+        const rr = deconstructionData(data.data);
         //获取当前登录用户的个人信息
         ctx.body = {
-            Message: '', status: 200, success: true, data: data.data
+            Message: '', status: 200, success: true, data: rr
         }
     });
     router.post(`/user/resetPass`, async (ctx, next) => {
@@ -532,7 +536,6 @@ module.exports = (router) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx)
         const list = []
-        console.log(data)
         data.list.forEach(res => {
             const obj = {
                 ...res, typeId: []
@@ -728,11 +731,12 @@ module.exports = (router) => {
         const studyStaffNumber = (await getApi(studyCtx)).studyStaffNumber.total.count;
         const data = await getApi(ctx, next);
         const result = data.data[0];
-        result.typeName = result.courseType?.name
-        result.studyStaffNumber = studyStaffNumber
-        delete result.courseType
+        // result.typeName = result.courseType?.name
+        // result.studyStaffNumber = studyStaffNumber
+        // delete result.courseType
+        const rr = deconstructionData(result);
         ctx.body = {
-            data: result, total: data.total, success: true, msg: '查询成功！'
+            data: rr, total: data.total, success: true, msg: '查询成功！'
         }
     });
     router.post(`/cert/download`, async (ctx) => {

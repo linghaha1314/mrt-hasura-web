@@ -98,8 +98,8 @@ async function getListByPage(ctx) {
     }
     let index = 1;
     for (const w in obj) {
-        sql += (convertColumn(w).indexOf('id') > -1 || convertColumn(w).indexOf('status') > -1 || convertColumn(w).indexOf('name') > -1) ? ` ${convertColumn(w)}=$${index}` : ` ${convertColumn(w)} like concat('%',$${index}, '%')`;
-        params.push(obj[w]);
+        sql += (convertColumn(w).indexOf('id') > -1 || convertColumn(w).indexOf('status') > -1) ? ` ${convertColumn(w)}=$${index}` : ` ${convertColumn(w)} like $${index}`;
+        params.push((convertColumn(w).indexOf('id') > -1 || convertColumn(w).indexOf('status') > -1) ? obj[w] : ('%' + obj[w] + '%'));
         if (index < keys.length) {
             sql += ` and`
         }
@@ -291,6 +291,21 @@ function stringToNull(val) {
     return val === null ? val : "'" + val + "'"
 }
 
+//解构含有xxxData的数据
+function deconstructionData(data) {
+    const keys = Object.keys(data);
+    let result = {};
+    keys.forEach(res => {
+        if (res.indexOf('Data') > -1) {
+            result = {...result, ...data[res]}
+            deconstructionData(result)
+        } else {
+            result[res] = data[res]
+        }
+    })
+    return result
+}
+
 //秒转化成时分秒的结构
 
 module.exports = {
@@ -308,5 +323,6 @@ module.exports = {
     getBeforeNext,
     deleteMultiple,
     covertColumnByType,
+    deconstructionData,
     dictionaryDataByTypeCode
 }
