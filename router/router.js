@@ -608,6 +608,81 @@ module.exports = (router) => {
             success: false, msg: '提交失败！'
         }
     });
+    router.post(`/note/getDataListByPage`, async (ctx) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx);
+        const list = [];
+        data.list.forEach(res => {
+            const obj = deconstructionData(res);
+            list.push(obj);
+        })
+        if (true) {
+            ctx.body = {
+                list: list, total: deconstructionData(data['totalData']), success: true, msg: '提交成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '提交失败！'
+        }
+    });
+    router.get(`/staff/getStudyListByPage`, async (ctx) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx);
+        const list = [];
+        data.list.forEach(res => {
+            const obj = deconstructionData(res);
+            obj.studyTime = Math.floor(obj.studyTime / 60)
+            obj.credits = obj.credits || 0
+            list.push(obj);
+        })
+        if (list) {
+            ctx.body = {
+                list: list, total: deconstructionData(data['totalData']).total, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    });
+    router.get(`/staffCredits/getCreditsRecordByStaffId`, async (ctx) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx);
+        const list = [];
+        data.list.forEach(res => {
+            const obj = deconstructionData(res);
+            list.push(obj);
+        })
+        if (list) {
+            ctx.body = {
+                list: list, total: deconstructionData(data['totalData']).total, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    });
+    router.get(`/courseStatistic/getCourseStatistic`, async (ctx) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx);
+        const list = [];
+        (data.list || []).forEach(res => {
+            const obj = deconstructionData(res);
+            obj.score = obj.score ? Number((obj.score * 2).toFixed(1)) : 0   //转化成十分制
+            list.push(obj);
+        })
+        if (list) {
+            ctx.body = {
+                list: list, total: deconstructionData(data['totalData']).total, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    });
 
     //client接口
     router.post('/client/login', async (ctx) => {
@@ -620,18 +695,20 @@ module.exports = (router) => {
             }, 'kbds random secret'),
         } : result;
     });
-    router.get(`/chapters/getListByCourseId`, async (ctx, next) => {
+    router.post(`/chapters/getListByCourseId`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = (await getApi(ctx, next)).data;
-        data.list.forEach(res => {
-            res['recordChapter'].forEach(rr => {
-                if (rr.completed) {
-                    res.completed = true;
-                } else {
-                    res.studyTime = rr.studyTime
-                }
+        if (ctx.request.body['where']) {  //登录才会查询播放记录
+            data.list.forEach(res => {
+                res['recordChapter'].forEach(rr => {
+                    if (rr.completed) {
+                        res.completed = true;
+                    } else {
+                        res.studyTime = rr.studyTime
+                    }
+                })
             })
-        })
+        }
         const parentData = data.list.filter(res => !res.parentId);
         const childData = data.list.filter(res => res.parentId);
         getMenuTree(parentData, childData); //如果存在父子关系，变成树状结构
@@ -652,39 +729,59 @@ module.exports = (router) => {
             }
         }
         const data = await getListByPage(selectIsHasCtx);
-        if (data.list.length === 0) {
+        if (data.list.length === 0) {  //没有观看记录
+            console.log(1111, data)
             await create(ctx, next);
-        } else if (data.list[0].completed) {
+        } else if (data.list[0].completed) {  //有观看记录，但是已经看完了，需要新增一次看课记录
             const res = data.list[0]
             if (res.studyTime + 5 >= res['totalTime'] && ctx.request.body.studyTime === 1) {
                 ctx.request.body.courseCompleted = res.courseCompleted
+                ctx.request.body.isRealCompleted = true    //改变所有的有关章节数据！
+                console.log(2222, data)
                 await create(ctx, next);
             }
         } else {
             const res = data.list[0]
             ctx.request.body.id = res.id
             ctx.request.body.endDate = (new Date).toISOString().replace(/Z/, "+00");
-            if (res.studyTime + 5 >= res['totalTime']) {
+            if (!res.isRealCompleted && res.studyTime > ctx.request.body.studyTime) {
+                ctx.request.body.studyTime = res.studyTime
+            }
+            console.log('++++....', res.studyTime, '-====>>', res['totalTime'])
+            //获取当前播放的studyTime;传入的studyTime>才记录；否则不记录；因为只执行一次，所以应该有try,catch防止错误，数据改变！必须一步一步都正确，分级！！！
+            if (res.studyTime + 5 >= res['totalTime']) {  //章节结束
                 ctx.request.body.completed = true
+                ctx.request.body.isRealCompleted = true    //改变所有的有关章节数据！
                 ctx.request.body.studyTime = res['totalTime']
                 await updateById(ctx, next);
+                //获取当前人员当前课程完成情况；可能会出错，一旦出错数据就不对！！
                 const cc = {
                     request: {
                         method: 'GET',
-                        url: `/watchRecord/getStaffCompleted?courseId=${ctx.request.body['courseId']}&staffId=${ctx.request.body['staffId']}`,
+                        url: `/watchRecord/getCompletedByStaffIdCourseId?courseId=${ctx.request.body['courseId']}&staffId=${ctx.request.body['staffId']}`,
                         query: {
                             limit: 1000, offset: 0
                         }
                     }, header: ctx.header
 
                 }
-                //完成的章节数目;
                 const result = await getApi(cc);
-                if (result.data.length > 0 && result.data[0]['courseData']['videoNumber'] === result.data.length) {
+                console.log('====>>>', result);   //只执行了一次！
+                if (result['completedChapterList'].length === result['chapterList'].length) {
                     //修改观看课程的状态；
                     await pool.query(`update kb_watch_record set course_completed=true where course_id = $1`, [ctx.request.body['courseId']]);
-                    //给个人加学分！
-                    await pool.query(`update kb_user set credits=$1 where id = $2`, [result.data[0]['courseData']['credits'], ctx.request.body['staffId']]);
+                    //学分记录;应该避免重复录入数据！
+                    const createStaffCreditsCtx = {
+                        request: {
+                            body: {
+                                staffId: ctx.request.body.staffId,
+                                courseId: ctx.request.body.courseId,
+                                credits: result['courseData'][0].credits
+                            }, url: '/staffCredits/create'
+                        }
+                    }
+                    const staffCredits = await create(createStaffCreditsCtx);
+                    console.log(staffCredits);
                 }
             } else {
                 await updateById(ctx, next);
@@ -768,29 +865,29 @@ module.exports = (router) => {
         // }
     });
 
-    // router.post(`/attachs/toJson`, async (ctx) => {
-    //     const fs = require('fs');
-    //     const xlsx = require('node-xlsx').default;
-    //     // 输出文件
-    //     if (ctx.request.body.status !== 1) {
-    //         //读取前端传过来的文件；转化成json;
-    //         //然后数据库语句循环执行；
-    //         const workSheetsFromBuffer = xlsx.parse(fs.readFileSync(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`));
-    //         const workSheetsFromFile = xlsx.parse(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`);
-    //         // console.log(workSheetsFromBuffer, workSheetsFromFile)
-    //         ctx.body = {
-    //             success: true, msg: '查询成功！'
-    //         }
-    //     } else {
-    //         //获取当前的数据数组；然后生成文件流返回给前端
-    //         const data = [[1, 2, 3], [true, false, null, 'sheetjs'], ['foo', 'bar', new Date('2014-02-19T14:30Z'), '0.3'], ['baz', null, 'qux'],];
-    //         const buffer = xlsx.build([{name: 'mySheetName', data: data}]);
-    //         fs.writeFileSync('./attachs/the_content.xlsx', buffer, {'flag': 'w'});
-    //         // console.log(buffer)
-    //     }
-    //
-    // });
-    //读取图片
+// router.post(`/attachs/toJson`, async (ctx) => {
+//     const fs = require('fs');
+//     const xlsx = require('node-xlsx').default;
+//     // 输出文件
+//     if (ctx.request.body.status !== 1) {
+//         //读取前端传过来的文件；转化成json;
+//         //然后数据库语句循环执行；
+//         const workSheetsFromBuffer = xlsx.parse(fs.readFileSync(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`));
+//         const workSheetsFromFile = xlsx.parse(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`);
+//         // console.log(workSheetsFromBuffer, workSheetsFromFile)
+//         ctx.body = {
+//             success: true, msg: '查询成功！'
+//         }
+//     } else {
+//         //获取当前的数据数组；然后生成文件流返回给前端
+//         const data = [[1, 2, 3], [true, false, null, 'sheetjs'], ['foo', 'bar', new Date('2014-02-19T14:30Z'), '0.3'], ['baz', null, 'qux'],];
+//         const buffer = xlsx.build([{name: 'mySheetName', data: data}]);
+//         fs.writeFileSync('./attachs/the_content.xlsx', buffer, {'flag': 'w'});
+//         // console.log(buffer)
+//     }
+//
+// });
+//读取图片
     router.get('/attachs/:name', ctx => {
         try {
             const filePath = decodeURI(path.join(__dirname.split('/router')[0], ctx.url));

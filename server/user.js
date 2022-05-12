@@ -296,9 +296,8 @@ function deconstructionData(data) {
     const keys = Object.keys(data);
     let result = {};
     keys.forEach(res => {
-        if (res.indexOf('Data') > -1) {
-            result = {...result, ...data[res]}
-            deconstructionData(result)
+        if (res.indexOf('Data') > -1 &&  data[res]) {
+            result = {...result, ...deconstructionData(data[res])}
         } else {
             result[res] = data[res]
         }

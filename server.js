@@ -57,6 +57,7 @@ app.use(function (ctx, next) {
             success: false, msg: err.stack
         }
         ctx.error = err;
+        console.error(err)
         throw err;
     });
 });
