@@ -68,8 +68,8 @@ function covertColumnByType(data, type = 1) {
 
 //登录验证
 async function validLogin(loginObj) {
-    const user = await pool.query('SELECT * FROM kb_user where username=$1', [loginObj.username]);
-    const pass = await pool.query(`SELECT * FROM kb_user where username=$1 And password=$2`, [loginObj.username, loginObj.password]);
+    const user = await pool.query('SELECT * FROM kb_user where job_num=$1', [loginObj.username]);
+    const pass = await pool.query(`SELECT * FROM kb_user where job_num=$1 And password=$2`, [loginObj.username, loginObj.password]);
     if (user.rows.length === 0) {
         result.msg = '用户名错误！';
     } else if (pass.rows.length !== 1) {
@@ -162,6 +162,7 @@ async function create(ctx) {
     into  ${getTableName(ctx.request.url)}(${keyList.join(',')})
     VALUES(${params.join(',')}) returning *;
     `;
+    console.log(sql, 777888)
     const data = await pool.query(sql, valueList);
     return data
 }
