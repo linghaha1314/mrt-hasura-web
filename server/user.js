@@ -72,6 +72,7 @@ async function validLogin(loginObj) {
     const pass = await pool.query(`SELECT * FROM kb_user where job_num=$1 And password=$2`, [loginObj.username, loginObj.password]);
     if (user.rows.length === 0) {
         result.msg = '用户名错误！';
+        result.success = false;
     } else if (pass.rows.length !== 1) {
         result.msg = '密码错误';
         result.success = false;
