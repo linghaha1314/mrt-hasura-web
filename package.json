@@ -21,11 +21,13 @@
     "koa-session": "^6.2.0",
     "koa-static": "^5.0.0",
     "koa2-cors": "^2.0.6",
+    "memory-cache": "^0.2.0",
     "node-xlsx": "^0.21.0",
     "pg": "^8.7.1",
     "pizzip": "^3.1.1",
     "request": "^2.88.2",
-    "request-promise": "^4.2.6"
+    "request-promise": "^4.2.6",
+    "xml-js": "^1.6.11"
   },
   "devDependencies": {
     "mime-types": "^2.1.34",

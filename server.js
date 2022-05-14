@@ -11,11 +11,6 @@ const control = require('./router/router');
 const request = require('request-promise');
 const cors = require('koa2-cors');
 const jsonwebtoken = require("jsonwebtoken");
-// const koaBody = require('koa-body')({
-//     multipart: true, uploadDir: '.', formidable: {
-//         maxFileSize: 2000000 * 1024 * 1024	// 设置上传文件大小最大限制，默认20000M
-//     }
-// })
 //编译后静态路径
 const staticPath = './frontend';
 //crud服务
@@ -23,6 +18,16 @@ const refUrl = "http://zyk.mrtcloud.com:8888";
 
 app.keys = ['kbds random secret'];
 app.use(session(app));
+// 添加单点登录
+const CasClient = require('./utils/cas-client');
+const cas = new CasClient({
+    cas_url: 'http://localhost:8080',
+    service_url: 'http://localhost:3001',
+    cas_login: '/login',
+    cas_logout: '/logout',
+    cas_validate: '/serviceValidate'
+});
+app.use(cas.auth);
 //应用静态资源
 app.use(static(path.join(__dirname, staticPath)));
 //数据处理
