@@ -11,6 +11,11 @@ const control = require('./router/router');
 const request = require('request-promise');
 const cors = require('koa2-cors');
 const jsonwebtoken = require("jsonwebtoken");
+// const koaBody = require('koa-body')({
+//     multipart: true, uploadDir: '.', formidable: {
+//         maxFileSize: 2000000 * 1024 * 1024	// 设置上传文件大小最大限制，默认20000M
+//     }
+// })
 //编译后静态路径
 const staticPath = './frontend';
 //crud服务
@@ -23,6 +28,7 @@ app.use(static(path.join(__dirname, staticPath)));
 //数据处理
 app.use(bodyParser());
 app.use(cors());
+
 //日志记录
 app.use(async (ctx, next) => {
     ctx.getUserId = jsonwebtoken.decode(ctx.request.req.headers.authorization?.substring(7) || null)?.data.id;
@@ -42,6 +48,7 @@ app.use(async (ctx, next) => {
         console.log(`${ctx.method} ${ctx.url} - ${rt}`);
     }
 });
+
 //监听器
 app.use(async (ctx, next) => {
     const start = Date.now();
@@ -64,7 +71,7 @@ app.use(function (ctx, next) {
 
 
 // 不过滤的请求路径
-const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/api.*$/, /\/swiper\/getListByPage/, /\/getListByPage/, /\/getByTypeCode/, /\/getUserInfo/, /\/getBeforeNext/, /\/courses\/getDataById/, /\/comment.*$/, /\/courseType.*$/, /\/course.*$/];
+const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/api.*$/, /\/swiper\/getListByPage/, /\/getListByPage/, /\/getByTypeCode/, /\/getUserInfo/, /\/getBeforeNext/, /\/courses\/getDataById/, /\/comment.*$/, /\/courseType.*$/, /\/course.*$/, /\/homeColumns.*$/];
 // Middleware below this line is only reached if JWT token is valid
 app.use(jwt({
     secret: 'kbds random secret'

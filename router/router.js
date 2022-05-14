@@ -1,7 +1,9 @@
 const jsonwebtoken = require('jsonwebtoken')
 const mime = require('mime-types')
 const koaBody = require('koa-body')({
-    multipart: true, uploadDir: '.'
+    multipart: true, uploadDir: '.',formidable: {
+        maxFileSize: 2000000 * 1024 * 1024	// 设置上传文件大小最大限制，默认2M
+    }
 })
 
 const {
@@ -683,6 +685,47 @@ module.exports = (router) => {
             success: false, msg: '查询失败！'
         }
     });
+    router.get(`/homeColumns/getDataList`, async (ctx) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx);
+        const parentData = data.list.filter(res => !res.parentId);
+        const childData = data.list.filter(res => res.parentId);
+        getMenuTree(parentData, childData); //如果存在父子关系，变成树状结构
+        // console.log('===>>>??', parentData);
+        //确保一级目录最外层columnMenus
+        parentData.forEach(res => {
+            if (res.columnMenus && res.columnMenus.length > 0) {
+                const parentMenu = res.columnMenus.filter(i => !i.parentId);
+                const childMenu = res.columnMenus.filter(i => i.parentId);
+                getMenuTree(parentMenu, childMenu);
+                res.columnMenus = parentMenu;
+            }
+            if (res.children && res.children.length > 0) {
+                const childrenList = [];
+                res.children.forEach(rr => {
+                    if (rr.columnMenus && rr.columnMenus.length > 0) {
+                        const parentChildMenu = rr.columnMenus.filter(dd => !dd.parentId);
+                        const childChildMenu = rr.columnMenus.filter(dd => dd.parentId);
+                        getMenuTree(parentChildMenu, childChildMenu);
+                        rr.columnMenus = parentChildMenu;
+                    }
+                    childrenList.push(rr);
+                })
+                res.children = childrenList
+            }
+        })
+        const list = [];
+        console.log(parentData);
+        if (list) {
+            ctx.body = {
+                list: parentData, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    });
 
     //client接口
     router.post('/client/login', async (ctx) => {
@@ -865,29 +908,7 @@ module.exports = (router) => {
         // }
     });
 
-// router.post(`/attachs/toJson`, async (ctx) => {
-//     const fs = require('fs');
-//     const xlsx = require('node-xlsx').default;
-//     // 输出文件
-//     if (ctx.request.body.status !== 1) {
-//         //读取前端传过来的文件；转化成json;
-//         //然后数据库语句循环执行；
-//         const workSheetsFromBuffer = xlsx.parse(fs.readFileSync(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`));
-//         const workSheetsFromFile = xlsx.parse(`/Users/mac/wzr/资源库/hasura-web/attachs/人员导入模板.xlsx`);
-//         // console.log(workSheetsFromBuffer, workSheetsFromFile)
-//         ctx.body = {
-//             success: true, msg: '查询成功！'
-//         }
-//     } else {
-//         //获取当前的数据数组；然后生成文件流返回给前端
-//         const data = [[1, 2, 3], [true, false, null, 'sheetjs'], ['foo', 'bar', new Date('2014-02-19T14:30Z'), '0.3'], ['baz', null, 'qux'],];
-//         const buffer = xlsx.build([{name: 'mySheetName', data: data}]);
-//         fs.writeFileSync('./attachs/the_content.xlsx', buffer, {'flag': 'w'});
-//         // console.log(buffer)
-//     }
-//
-// });
-//读取图片
+    //读取图片
     router.get('/attachs/:name', ctx => {
         try {
             const filePath = decodeURI(path.join(__dirname.split('/router')[0], ctx.url));
@@ -899,6 +920,7 @@ module.exports = (router) => {
             console.log(`error ${err.message}`)
         }
     });
+
     router.post('/public/upload', koaBody, async ctx => {
         try {
             const {
