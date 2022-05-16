@@ -69,15 +69,23 @@ function covertColumnByType(data, type = 1) {
 
 //登录验证
 async function validLogin(loginObj) {
+    // 连续登录五次错误就锁住这个帐号；登录错误就记录一次；
     const user = await pool.query('SELECT * FROM kb_user where job_num=$1', [loginObj.username]);
+    console.log('===>>??', user);
     const pass = await pool.query(`SELECT * FROM kb_user where job_num=$1 And password=$2`, [loginObj.username, loginObj.password]);
     if (user.rows.length === 0) {
         result.msg = '用户名错误！';
         result.success = false;
-    } else if (pass.rows.length !== 1) {
-        result.msg = '密码错误';
+    } else if (pass.rows.length !== 1 || user.rows[0].locked) {
+        if (user.rows[0]['error_num'] <= 1) {
+            await pool.query(`update kb_user set error_num=$1,locked=$2 where id=$3`, [0, true, user.rows[0].id]);
+        } else {
+            await pool.query(`update kb_user set error_num=$1 where id=$2`, [user.rows[0]['error_num'] - 1, user.rows[0].id]);
+        }
+        result.msg = user.rows[0]['error_num'] <= 1 ? '密码错误五次，帐号已经被锁定，请联系管理员' : `密码错误,你还有${user.rows[0]['error_num'] - 1}次机会`
         result.success = false;
     } else {
+        await pool.query(`update kb_user set error_num=$1, locked=$2 where id=$3`, [5, false, user.rows[0].id]);
         result.id = user.rows[0].id;
         result.success = true;
         result.msg = '登录成功！';

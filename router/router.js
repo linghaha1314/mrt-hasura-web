@@ -6,7 +6,7 @@ const koaBody = require('koa-body')({
     }
 })
 const CryptoJS = require('crypto-js');
-
+const svgCaptcha = require('svg-captcha')
 const {
     getApi,
     validLogin,
@@ -236,6 +236,7 @@ module.exports = (router) => {
             }, 'kbds random secret'),
         } : result;
     });
+
     router.get('/getUserInfo', async (ctx, next) => {
         const data = await getApi(ctx, next);
         console.log(data.data)
@@ -300,20 +301,25 @@ module.exports = (router) => {
             success: false, msg: '新增失败！'
         }
     });
+
     router.get(`/user/getUserListByPage`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx, next);
-        data.list.forEach(res => {
+        data.list.forEach((res, index) => {
             res['roles'] = [];
+            const roleList = [];
             (res['roleList'] || []).forEach(rr => {
-                res['roles'].push(rr['roleId'])
+                const obj = deconstructionData(rr);
+                res['roles'].push(obj.roleId)
+                roleList.push(obj)
             })
-            delete data.list['roleList']
+            data.list[index]['roleList'] = roleList
         })
         ctx.body = {
             list: data.list, total: data.total['aggregate'].count, success: true, msg: '查询成功！'
         }
     });
+
     router.post(`/user/deleteUserById`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         await pool.query(`delete from kb_user_role where user_id = $1`, [ctx.request.body.id]);
@@ -729,6 +735,18 @@ module.exports = (router) => {
         }
         ctx.body = {
             success: false, msg: '查询失败！'
+        }
+    });
+    router.get(`/public/getCode`, async (ctx) => {
+        const c = svgCaptcha.create({
+            size: 4, // 验证码长度
+            ignoreChars: '0o1i', // 验证码字符中排除 0o1i
+            color: true, // 验证码是否有彩色
+            noise: 1, //干扰线
+            background: '#666' // 背景颜色
+        })
+        ctx.body = {
+            data: c.data, text: c.text, success: true, msg: '查询成功！'
         }
     });
 

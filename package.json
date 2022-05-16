@@ -28,6 +28,7 @@
     "pizzip": "^3.1.1",
     "request": "^2.88.2",
     "request-promise": "^4.2.6",
+    "svg-captcha": "^1.4.0",
     "xml-js": "^1.6.11"
   },
   "devDependencies": {
