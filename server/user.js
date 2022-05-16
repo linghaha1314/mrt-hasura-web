@@ -220,12 +220,8 @@ async function dictionaryDataByTypeCode(ctx, next) {
 //查
 async function getBeforeNext(ctx, next) {
     const idName = ctx.request.body.id;
-    const sql = `select * from ${getTableName(ctx.request.url)} a
-where sequence > ${idName} and not exists(select 1 from ${getTableName(ctx.request.url)} where sequence > ${idName} and
-sequence < a.sequence )
-or
-sequence < ${idName} and not exists(select 1 from ${getTableName(ctx.request.url)} where sequence < ${idName} and
-sequence > a.sequence )`
+    const typeId = ctx.request.body.typeId;
+    const sql =`(SELECT a.* FROM ${getTableName(ctx.request.url)} a WHERE a.type_id = '${typeId}' AND a.sequence < ${idName} order by a.sequence desc LIMIT 1) UNION (SELECT a.* FROM ${getTableName(ctx.request.url)} a WHERE a.type_id = '${typeId}' AND a.sequence > ${idName} order by a.sequence LIMIT 1)`
     const data = await pool.query(sql)
     return covertColumnByType(data.rows, 2)
 }
