@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "crypto-js": "^4.1.1",
     "docxtemplater": "^3.29.0",
     "jsonwebtoken": "^8.5.1",
     "koa": "^2.13.4",

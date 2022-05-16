@@ -1,10 +1,11 @@
 const jsonwebtoken = require('jsonwebtoken')
 const mime = require('mime-types')
 const koaBody = require('koa-body')({
-    multipart: true, uploadDir: '.',formidable: {
+    multipart: true, uploadDir: '.', formidable: {
         maxFileSize: 2000000 * 1024 * 1024	// 设置上传文件大小最大限制，默认2M
     }
 })
+const CryptoJS = require('crypto-js');
 
 const {
     getApi,
@@ -223,6 +224,9 @@ module.exports = (router) => {
 
     //自定义接口
     router.post('/login', async (ctx) => {
+        const bytes = CryptoJS.AES.decrypt(ctx.request.body.password, 'kb12315')
+        const originalText = bytes.toString(CryptoJS.enc.Utf8)
+        ctx.request.body.password = originalText
         const result = await validLogin(ctx.request.body);
         ctx.body = result.success ? {
             ...result, token: jsonwebtoken.sign({
@@ -687,6 +691,7 @@ module.exports = (router) => {
     });
     router.get(`/homeColumns/getDataList`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
+        console.log('===', ctx.session.user)
         const data = await getApi(ctx);
         const parentData = data.list.filter(res => !res.parentId);
         const childData = data.list.filter(res => res.parentId);

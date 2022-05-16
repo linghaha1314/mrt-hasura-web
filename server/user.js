@@ -5,6 +5,7 @@ const refUrl = "http://zyk.mrtcloud.com:8888/api/rest";
 const result = {
     msg: '', success: false
 };
+const CryptoJS = require('crypto-js');
 
 //获取表名
 function getTableName(url) {
@@ -298,7 +299,7 @@ function deconstructionData(data) {
     const keys = Object.keys(data);
     let result = {};
     keys.forEach(res => {
-        if (res.indexOf('Data') > -1 &&  data[res]) {
+        if (res.indexOf('Data') > -1 && data[res]) {
             result = {...result, ...deconstructionData(data[res])}
         } else {
             result[res] = data[res]
