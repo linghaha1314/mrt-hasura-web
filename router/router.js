@@ -46,6 +46,7 @@ module.exports = (router) => {
             success: false, msg: '新增失败！'
         }
     });
+
     router.post(`/deleteById`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await deleteById(ctx, next);
@@ -59,6 +60,7 @@ module.exports = (router) => {
             success: false, msg: '删除失败!'
         }
     });
+
     router.get(`/getList`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getList(ctx, next);
@@ -69,6 +71,7 @@ module.exports = (router) => {
             list: parentData, total: data.total, success: true, msg: '查询成功！'
         }
     });
+
     router.get(`/getListByPage`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getListByPage(ctx, next);
@@ -79,6 +82,7 @@ module.exports = (router) => {
             list: parentData, total: data.total, success: true, msg: '查询成功！'
         }
     });
+
     router.post(`/updateById`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await updateById(ctx, next);
@@ -92,6 +96,7 @@ module.exports = (router) => {
             success: false, msg: '更新失败！'
         }
     });
+
     router.post(`/getDataById`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getDataById(ctx, next);
@@ -106,6 +111,7 @@ module.exports = (router) => {
             success: false, msg: '查询失败！'
         }
     });
+
     router.post(`/getBeforeNext`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getBeforeNext(ctx, next);
@@ -119,6 +125,7 @@ module.exports = (router) => {
             success: false, msg: '查询失败！'
         }
     });
+
     router.post(`/deleteMultiple`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await deleteMultiple(ctx, next);
@@ -132,6 +139,7 @@ module.exports = (router) => {
             success: false, msg: '删除失败！'
         }
     });
+
     router.get(`/api`, async (ctx) => {
         // ctx.set('X-Response-Url', refUrl + ctx.request.url);
         const response = await request({
@@ -153,6 +161,7 @@ module.exports = (router) => {
             success: false, msg: '失败！'
         }
     });
+
     //批量导入
     router.post(`/import`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
@@ -175,6 +184,7 @@ module.exports = (router) => {
             success: false, msg: '新增失败！'
         }
     });
+
     //字典数据获取
     router.post(`/dictionaryData/getByTypeCode`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
@@ -189,6 +199,7 @@ module.exports = (router) => {
             success: false, msg: '失败！'
         }
     });
+
     //菜单授权
     router.post(`/roleAuthority/update`, async (ctx, next) => {
         const newCtx = {
@@ -216,6 +227,7 @@ module.exports = (router) => {
             success: true, msg: '授权成功！'
         }
     });
+
     router.post(`/moreTable`, async (ctx, next) => {
         ctx.body = {
             success: true, msg: '授权成功！'
@@ -246,6 +258,7 @@ module.exports = (router) => {
             Message: '', status: 200, success: true, data: rr
         }
     });
+
     router.post(`/user/resetPass`, async (ctx, next) => {
         ctx.request.url = '/user/updateById'
         ctx.request.body.change = {password: '123456'}
@@ -261,6 +274,7 @@ module.exports = (router) => {
         }
 
     });
+
     router.get(`/menu/list`, async (ctx, next) => {
         const data = await getApi(ctx, next);
         const parentData = data.list.filter(res => !res.parentId);
@@ -270,6 +284,7 @@ module.exports = (router) => {
             success: true, msg: '获取成功', list: parentData
         }
     });
+
     router.post(`/roleAuthority/getMenusByRoleId`, async (ctx, next) => {
         const data = await getApi(ctx, next);
         const list = [];
@@ -283,6 +298,7 @@ module.exports = (router) => {
             success: true, msg: '获取成功', list: parentData
         }
     });
+
     router.post(`/user/createUser`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const roles = ctx.request.body['roles']
@@ -329,6 +345,7 @@ module.exports = (router) => {
             list: data.list, total: data.total, success: true, msg: '查询成功！'
         }
     });
+
     router.post(`/user/updateUserById`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const roles = ctx.request.body['roles'] || []
@@ -349,6 +366,7 @@ module.exports = (router) => {
             success: false, msg: '更新失败！'
         }
     });
+
     router.post(`/exam/insert`, async (ctx) => {
         //先创建试卷；
         const examPaper = {
@@ -397,6 +415,7 @@ module.exports = (router) => {
             }
         }
     });
+
     router.post(`/exam/getQuestionList`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx, next);
@@ -423,6 +442,7 @@ module.exports = (router) => {
             success: false, msg: '失败！'
         }
     });
+
     router.get(`/lecturer/getLecturerListByPage`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx, next);
@@ -446,6 +466,7 @@ module.exports = (router) => {
             success: false, msg: '失败！'
         }
     });
+
     router.post(`/courseFiles/update`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const deleteCtx = {
@@ -471,6 +492,7 @@ module.exports = (router) => {
             success: true, msg: '成功！'
         }
     });
+
     router.post(`/courseVerify/update`, async (ctx, next) => {
         const deleteCtx = {
             request: {
@@ -503,17 +525,21 @@ module.exports = (router) => {
             success: false, msg: '失败！'
         }
     });
+
+    //课程创建和更新都是一个接口
     router.post(`/courses/createUpdate`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const typeIds = ctx.request.body.typeId
+        const columnIds = ctx.request.body.columnId
         delete ctx.request.body.typeId
+        delete ctx.request.body.columnId
         let result = {}
-        console.log(ctx.request.body)
         if (!ctx.request.body.id) {
             result = await create(ctx, next);
         } else {
             result = await updateById(ctx, next);
         }
+        //删除课程分类
         const deleteCtx = {
             request: {
                 body: {
@@ -522,7 +548,17 @@ module.exports = (router) => {
             }
         }
         await deleteById(deleteCtx, next);
+        //删除课程栏目
+        const deleteColumnIdCtx = {
+            request: {
+                body: {
+                    courseId: ctx.request.body.id || result.id
+                }, url: '/courseColumn/deleteById'
+            }
+        }
+        await deleteById(deleteColumnIdCtx, next);
         let sum = 0;
+        //typeId-课程类型存在
         for (const res of typeIds) {
             const newCtx = {
                 request: {
@@ -534,6 +570,20 @@ module.exports = (router) => {
             const data = await create(newCtx, next);
             sum += data.rowCount
         }
+        let sumColumn = 0;
+        //columnId-课程栏目存在
+        for (const res of columnIds) {
+            const newCtx = {
+                request: {
+                    body: {
+                        columnId: res, courseId: ctx.request.body.id || result.id
+                    }, url: '/courseColumn/create'
+                }
+            }
+            const data = await create(newCtx, next);
+            sumColumn += data.rowCount
+        }
+
         if (sum === typeIds.length) {
             ctx.body = {
                 data: sum, success: true, msg: '提交成功！'
@@ -544,17 +594,21 @@ module.exports = (router) => {
             success: false, msg: '提交失败！'
         }
     });
+
     router.get(`/courses/getDataListByPage`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx)
         const list = []
         data.list.forEach(res => {
             const obj = {
-                ...res, typeId: []
+                ...res, typeId: [], columnId: []
             }
             delete obj['courseClass']
             res['courseClass'].forEach(rr => {
                 obj.typeId.push(rr.typeId)
+            })
+            res['courseColumnData'].forEach(rr => {
+                obj.columnId.push(rr.columnId)
             })
             list.push(obj)
         })
@@ -568,6 +622,7 @@ module.exports = (router) => {
             success: false, msg: '提交失败！'
         }
     });
+
     router.post(`/approvalProcessSet/createData`, async (ctx) => {
         const newCtx = {
             request: {
@@ -597,6 +652,7 @@ module.exports = (router) => {
             success: false, msg: '提交失败！'
         }
     });
+
     router.get(`/approvalProcessSet/getDataListByPage`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx);
@@ -620,6 +676,7 @@ module.exports = (router) => {
             success: false, msg: '提交失败！'
         }
     });
+
     router.post(`/note/getDataListByPage`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx);
@@ -638,6 +695,7 @@ module.exports = (router) => {
             success: false, msg: '提交失败！'
         }
     });
+
     router.get(`/staff/getStudyListByPage`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx);
@@ -658,6 +716,7 @@ module.exports = (router) => {
             success: false, msg: '查询失败！'
         }
     });
+
     router.get(`/staffCredits/getCreditsRecordByStaffId`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx);
@@ -676,6 +735,7 @@ module.exports = (router) => {
             success: false, msg: '查询失败！'
         }
     });
+
     router.get(`/courseStatistic/getCourseStatistic`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx);
@@ -695,36 +755,13 @@ module.exports = (router) => {
             success: false, msg: '查询失败！'
         }
     });
+
     router.get(`/homeColumns/getDataList`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
-        console.log('===', ctx.session.user)
         const data = await getApi(ctx);
         const parentData = data.list.filter(res => !res.parentId);
         const childData = data.list.filter(res => res.parentId);
         getMenuTree(parentData, childData); //如果存在父子关系，变成树状结构
-        // console.log('===>>>??', parentData);
-        //确保一级目录最外层columnMenus
-        parentData.forEach(res => {
-            if (res.columnMenus && res.columnMenus.length > 0) {
-                const parentMenu = res.columnMenus.filter(i => !i.parentId);
-                const childMenu = res.columnMenus.filter(i => i.parentId);
-                getMenuTree(parentMenu, childMenu);
-                res.columnMenus = parentMenu;
-            }
-            if (res.children && res.children.length > 0) {
-                const childrenList = [];
-                res.children.forEach(rr => {
-                    if (rr.columnMenus && rr.columnMenus.length > 0) {
-                        const parentChildMenu = rr.columnMenus.filter(dd => !dd.parentId);
-                        const childChildMenu = rr.columnMenus.filter(dd => dd.parentId);
-                        getMenuTree(parentChildMenu, childChildMenu);
-                        rr.columnMenus = parentChildMenu;
-                    }
-                    childrenList.push(rr);
-                })
-                res.children = childrenList
-            }
-        })
         const list = [];
         console.log(parentData);
         if (list) {
@@ -737,6 +774,22 @@ module.exports = (router) => {
             success: false, msg: '查询失败！'
         }
     });
+
+    router.post(`/homeColumns/getCourseByColumnCode`, async (ctx) => {
+        ctx.request.url = ctx.request.realUrl
+        ctx.request.body.code = ctx.request.body.code + '%'
+        const data = await getApi(ctx);
+        if (data) {
+            ctx.body = {
+                list: data.list, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    });
+
     router.get(`/public/getCode`, async (ctx) => {
         const c = svgCaptcha.create({
             size: 4, // 验证码长度
@@ -761,6 +814,7 @@ module.exports = (router) => {
             }, 'kbds random secret'),
         } : result;
     });
+
     router.post(`/chapters/getListByCourseId`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = (await getApi(ctx, next)).data;
@@ -782,6 +836,7 @@ module.exports = (router) => {
             list: parentData, total: data.total.count, success: true, msg: '查询成功！'
         }
     });
+
     router.post(`/watchRecord/record`, async (ctx, next) => {
         const selectIsHasCtx = {
             request: {
@@ -863,12 +918,14 @@ module.exports = (router) => {
             success: false, msg: '记录失败！'
         }
     })
+
     router.get(`/collectCourse/getDataListByPage`, async (ctx, next) => {
         const data = await getApi(ctx, next);
         ctx.body = {
             list: data.list, total: data.total, success: true, msg: '查询成功！'
         }
     });
+
     router.post(`/comment/getCommentListByPage`, async (ctx, next) => {
         const data = await getApi(ctx, next);
         const listData = [];
@@ -883,6 +940,7 @@ module.exports = (router) => {
             list: listData, total: data.data.total.count, success: true, msg: '查询成功！'
         }
     });
+
     router.get(`/course/getCourseById`, async (ctx, next) => {
         const studyCtx = {
             request: {
@@ -902,6 +960,7 @@ module.exports = (router) => {
             data: rr, total: data.total, success: true, msg: '查询成功！'
         }
     });
+
     router.post(`/cert/download`, async (ctx) => {
         // const PizZip = require('pizzip');
         // const Docxtemplater = require('docxtemplater');
@@ -962,5 +1021,6 @@ module.exports = (router) => {
             // })
         }
     });
+
     return router;
 };
