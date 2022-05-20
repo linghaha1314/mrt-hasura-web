@@ -229,7 +229,7 @@ async function dictionaryDataByTypeCode(ctx, next) {
 async function getBeforeNext(ctx, next) {
     const idName = ctx.request.body.id;
     const typeId = ctx.request.body.typeId;
-    const sql =`(SELECT a.* FROM ${getTableName(ctx.request.url)} a WHERE a.type_id = '${typeId}' AND a.sequence < ${idName} order by a.sequence desc LIMIT 1) UNION (SELECT a.* FROM ${getTableName(ctx.request.url)} a WHERE a.type_id = '${typeId}' AND a.sequence > ${idName} order by a.sequence LIMIT 1)`
+    const sql = `(SELECT a.* FROM ${getTableName(ctx.request.url)} a WHERE a.type_id = '${typeId}' AND a.sequence < ${idName} order by a.sequence desc LIMIT 1) UNION (SELECT a.* FROM ${getTableName(ctx.request.url)} a WHERE a.type_id = '${typeId}' AND a.sequence > ${idName} order by a.sequence LIMIT 1)`
     const data = await pool.query(sql)
     return covertColumnByType(data.rows, 2)
 }
@@ -312,7 +312,16 @@ function deconstructionData(data) {
     return result
 }
 
-//秒转化成时分秒的结构
+//秒转化成时分秒的结构-生成时间随机数
+function DateToStr(date) {
+    const year = date.getFullYear();//年
+    const month = date.getMonth();//月
+    const day = date.getDate();//日
+    const hours = date.getHours();//时
+    const min = date.getMinutes();//分
+    const second = date.getSeconds();//秒
+    return year.toString() + ((month + 1) > 9 ? (month + 1) : "0" + (month + 1)).toString() + (day > 9 ? day : ("0" + day)).toString() + (hours > 9 ? hours : ("0" + hours)).toString() + (min > 9 ? min : ("0" + min)).toString() + (second > 9 ? second : ("0" + second)).toString();
+}
 
 module.exports = {
     refUrl,
@@ -324,6 +333,7 @@ module.exports = {
     getMenuTree,
     changeDataTree,
     create,
+    DateToStr,
     updateById,
     getDataById,
     getBeforeNext,

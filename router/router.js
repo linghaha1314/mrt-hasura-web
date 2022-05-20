@@ -16,6 +16,7 @@ const {
     deleteById,
     getBeforeNext,
     refUrl,
+    DateToStr,
     changeDataTree,
     covertColumnByType,
     deconstructionData,
@@ -779,9 +780,14 @@ module.exports = (router) => {
         ctx.request.url = ctx.request.realUrl
         ctx.request.body.code = ctx.request.body.code + '%'
         const data = await getApi(ctx);
+        const list = [];
+        data.list.forEach(res => {
+            const obj = deconstructionData(res)
+            list.push(obj)
+        })
         if (data) {
             ctx.body = {
-                list: data.list, success: true, msg: '查询成功！'
+                list: list, success: true, msg: '查询成功！'
             }
             return;
         }
@@ -1008,10 +1014,11 @@ module.exports = (router) => {
             const {
                 path, name
             } = ctx.request.files.file;
-            await fs.copyFileSync(path, `attachs/${name}`)
+            const nameString = name.replace(/([.][^.]+)$/, '') + DateToStr(new Date()) + '.' + ((name.match(/([^.]+)$/)) || [])[1]
+            await fs.copyFileSync(path, `attachs/${nameString}`)
             ctx.body = {
                 success: true, msg: '上传成功！', data: {
-                    path: '/attachs/' + name, name: name
+                    path: '/attachs/' + nameString, name: name
                 }
             }
         } catch (err) {
