@@ -212,7 +212,8 @@ module.exports = (router) => {
         }
         await deleteById(newCtx, next);
         const menuIds = ctx.request.body['menuIds'] || []
-        menuIds.forEach(res => {
+        let data = {};
+        for (const res of menuIds) {
             const createNewCtx = {
                 request: {
                     url: '/roleAuthority/create', body: {
@@ -221,11 +222,12 @@ module.exports = (router) => {
                 }
 
             }
-            create(createNewCtx, next);
-        })
-
-        ctx.body = {
-            success: true, msg: '授权成功！'
+            data = await create(createNewCtx, next);
+        }
+        if (data) {
+            ctx.body = {
+                data, success: true, msg: '授权成功！'
+            }
         }
     });
 
@@ -252,8 +254,8 @@ module.exports = (router) => {
 
     router.get('/getUserInfo', async (ctx, next) => {
         const data = await getApi(ctx, next);
-        console.log(data.data)
         const rr = deconstructionData(data.data);
+        rr.currentRole = rr.currentRole[0]
         //获取当前登录用户的个人信息
         ctx.body = {
             Message: '', status: 200, success: true, data: rr
@@ -352,11 +354,6 @@ module.exports = (router) => {
         const roles = ctx.request.body['roles'] || []
         delete ctx.request.body['roles']
         const data = await updateById(ctx, next);
-        //先查询角色信息是否已经有了；有了就不新增；
-        pool.query(`delete from kb_user_role where user_id=$1`, [ctx.request.body.id])
-        roles.forEach(res => {
-            pool.query(`insert into  kb_user_role (user_id,role_id) VALUES($1,$2);`, [ctx.request.body.id, res]);
-        })
         if (data) {
             ctx.body = {
                 data: data, success: true, msg: '更新成功！'
@@ -367,6 +364,64 @@ module.exports = (router) => {
             success: false, msg: '更新失败！'
         }
     });
+
+    router.post('/userRole/createUpdate', async (ctx) => {
+        const deleteCtx = {
+            request: {
+                body: {
+                    userId: ctx.request.body.id
+                }, url: '/userRole/deleteById'
+            }
+        }
+        const deleteData = await deleteById(deleteCtx)
+        const roles = ctx.request.body.roles
+        for (const res of roles) {
+            const index = roles.indexOf(res);
+            const createCtx = {
+                request: {
+                    body: {
+                        roleId: res, userId: ctx.request.body.id, isCurrentRole: index === 1 ? true : false
+                    }, url: '/userRole/create'
+                }
+            }
+            await create(createCtx)
+        }
+        if (deleteData) {
+            ctx.body = {
+                data: deleteData, success: true, msg: '更新成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '更新失败！'
+        }
+    })
+
+    router.post('/userRole/updateCurrentRole', async (ctx) => {
+        const getUserRoleCtx = {
+            request: {
+                method: 'GET', query: {
+                    limit: 1000, offset: 0, userId: ctx.request.body.staffId
+                }, url: '/userRole/getListByPage'
+            }
+        }
+        const getData = await getListByPage(getUserRoleCtx)
+        for (const res of getData.list) {
+            const objCtx = {
+                request: {
+                    body: {
+                        id: res.id,
+                        isCurrentRole: false
+                    }, url: '/userRole/updateById'
+                }
+            }
+            objCtx.request.body.isCurrentRole = res.roleId === ctx.request.body.currentRoleId ? true : false
+            await updateById(objCtx)
+        }
+        ctx.body = {
+            data: 1, success: true, msg: '更新成功！'
+        }
+    })
 
     router.post(`/exam/insert`, async (ctx) => {
         //先创建试卷；
@@ -527,6 +582,107 @@ module.exports = (router) => {
         }
     });
 
+    //创建工作流
+    router.post(`/workflow/createProcess`, async (ctx, next) => {
+        // //创建工作流
+        ctx.request.url = '/workflowStart/create'
+        const workData = covertColumnByType((await create(ctx)).rows, 2)
+        //查询approvalId的具体流程
+        const approvalCtx = {
+            request: {
+                method: 'GET', query: {
+                    limit: 1000, offset: 0, parentId: ctx.request.body['approvalProcessId'], sort: 'created asc'
+                }, url: '/approvalProcessSet/getListByPage'
+            }
+        }
+        const approvalData = await getListByPage(approvalCtx)
+        for (const res of approvalData.list) {
+            const index = approvalData.list.indexOf(res);
+            const processDetailCtx = {
+                request: {
+                    body: {
+                        workflowId: workData[0].id,
+                        status: 11,
+                        objectId: ctx.request.body.objectId,
+                        approvalProcessId: ctx.request.body['approvalProcessId'],
+                        stepProcessId: res.id,
+                        isCurrentApproval: index === 0 ? true : false,
+                        sequence: index + 1
+                    }, url: '/processDetail/create'
+                }
+
+            }
+            await create(processDetailCtx)
+        }
+        //设置课程的状态
+        const updateCourseCtx = {
+            request: {
+                body: {
+                    id: ctx.request.body.objectId, status: 11
+                }, url: '/courses/updateById'
+            }
+        }
+        const data = await updateById(updateCourseCtx)
+        console.log('===>>>update', data);
+        // const returnListCtx = {
+        //     method: 'POST', header: ctx.request.header, request: {
+        //         body: {
+        //             objectId: ctx.request.body['objectId']
+        //         }, url: '/process/getStepDetail'
+        //     }
+        // }
+        // //获取返回的流程数据
+        // const data = await getApi(returnListCtx)
+        // const list = [];
+        // data.list.forEach(res => {
+        //     const obj = deconstructionData(res)
+        //     list.push(obj)
+        // })
+        //根据approvalId设置对应的--审批具体步骤
+        ctx.body = {
+            list: data, success: true, msg: '提交成功！'
+        }
+    });
+    //获取工作流详情
+    router.post(`/process/getStepDetail`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx)
+        const list = [];
+        data.list.forEach(res => {
+            const obj = deconstructionData(res)
+            list.push(obj)
+        })
+        if (list) {
+            ctx.body = {
+                list: list, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    });
+    //根据roleId获取当前可以审批的课程
+    router.get(`/process/getCourseByRoleId`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx)
+        console.log('==>>>data', data);
+        const list = [];
+        data.list.forEach(res => {
+            const obj = deconstructionData(res)
+            list.push(obj)
+        })
+        if (list) {
+            ctx.body = {
+                list: list, total: deconstructionData(data['totalData']).total, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    });
+
     //课程创建和更新都是一个接口
     router.post(`/courses/createUpdate`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
@@ -536,35 +692,36 @@ module.exports = (router) => {
         delete ctx.request.body.columnId
         let result = {}
         if (!ctx.request.body.id) {
+            delete ctx.request.body.id
             result = await create(ctx, next);
         } else {
             result = await updateById(ctx, next);
-        }
-        //删除课程分类
-        const deleteCtx = {
-            request: {
-                body: {
-                    courseId: ctx.request.body.id || result.id
-                }, url: '/courseClass/deleteById'
+            //删除课程分类
+            const deleteCtx = {
+                request: {
+                    body: {
+                        courseId: ctx.request.body.id || result.id
+                    }, url: '/courseClass/deleteById'
+                }
             }
-        }
-        await deleteById(deleteCtx, next);
-        //删除课程栏目
-        const deleteColumnIdCtx = {
-            request: {
-                body: {
-                    courseId: ctx.request.body.id || result.id
-                }, url: '/courseColumn/deleteById'
+            await deleteById(deleteCtx, next);
+            //删除课程栏目
+            const deleteColumnIdCtx = {
+                request: {
+                    body: {
+                        courseId: ctx.request.body.id || result.id
+                    }, url: '/courseColumn/deleteById'
+                }
             }
+            await deleteById(deleteColumnIdCtx, next);
         }
-        await deleteById(deleteColumnIdCtx, next);
         let sum = 0;
         //typeId-课程类型存在
         for (const res of typeIds) {
             const newCtx = {
                 request: {
                     body: {
-                        typeId: res, courseId: ctx.request.body.id || result.id
+                        typeId: res, courseId: ctx.request.body.id || result.rows[0].id
                     }, url: '/courseClass/create'
                 }
             }
@@ -577,14 +734,13 @@ module.exports = (router) => {
             const newCtx = {
                 request: {
                     body: {
-                        columnId: res, courseId: ctx.request.body.id || result.id
+                        columnId: res, courseId: ctx.request.body.id || result.rows[0].id
                     }, url: '/courseColumn/create'
                 }
             }
             const data = await create(newCtx, next);
             sumColumn += data.rowCount
         }
-
         if (sum === typeIds.length) {
             ctx.body = {
                 data: sum, success: true, msg: '提交成功！'
@@ -666,7 +822,6 @@ module.exports = (router) => {
         const parentData = list.filter(res => !res.parentId);
         const childData = list.filter(res => res.parentId);
         getMenuTree(parentData, childData);
-        console.log(list, parentData, childData)
         if (true) {
             ctx.body = {
                 list: parentData, total: data['totalData']['aggregate'].count, success: true, msg: '提交成功！'
@@ -857,14 +1012,13 @@ module.exports = (router) => {
         }
         const data = await getListByPage(selectIsHasCtx);
         if (data.list.length === 0) {  //没有观看记录
-            console.log(1111, data)
             await create(ctx, next);
         } else if (data.list[0].completed) {  //有观看记录，但是已经看完了，需要新增一次看课记录
             const res = data.list[0]
             if (res.studyTime + 5 >= res['totalTime'] && ctx.request.body.studyTime === 1) {
                 ctx.request.body.courseCompleted = res.courseCompleted
                 ctx.request.body.isRealCompleted = true    //改变所有的有关章节数据！
-                console.log(2222, data)
+                ctx.request.body.maxTime = res.totalTime    //改变所有的有关章节数据！
                 await create(ctx, next);
             }
         } else {
@@ -874,12 +1028,13 @@ module.exports = (router) => {
             if (!res.isRealCompleted && res.studyTime > ctx.request.body.studyTime) {
                 ctx.request.body.studyTime = res.studyTime
             }
-            console.log('++++....', res.studyTime, '-====>>', res['totalTime'])
+            ctx.request.body.maxTime = res.maxTime < ctx.request.body.studyTime ? ctx.request.body.studyTime : res.maxTime;
             //获取当前播放的studyTime;传入的studyTime>才记录；否则不记录；因为只执行一次，所以应该有try,catch防止错误，数据改变！必须一步一步都正确，分级！！！
             if (res.studyTime + 5 >= res['totalTime']) {  //章节结束
                 ctx.request.body.completed = true
                 ctx.request.body.isRealCompleted = true    //改变所有的有关章节数据！
                 ctx.request.body.studyTime = res['totalTime']
+                ctx.request.body.maxTime = res['totalTime'];
                 await updateById(ctx, next);
                 //获取当前人员当前课程完成情况；可能会出错，一旦出错数据就不对！！
                 const cc = {
@@ -893,7 +1048,6 @@ module.exports = (router) => {
 
                 }
                 const result = await getApi(cc);
-                console.log('====>>>', result);   //只执行了一次！
                 if (result['completedChapterList'].length === result['chapterList'].length) {
                     //修改观看课程的状态；
                     await pool.query(`update kb_watch_record set course_completed=true where course_id = $1`, [ctx.request.body['courseId']]);
@@ -908,7 +1062,6 @@ module.exports = (router) => {
                         }
                     }
                     const staffCredits = await create(createStaffCreditsCtx);
-                    console.log(staffCredits);
                 }
             } else {
                 await updateById(ctx, next);

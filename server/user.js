@@ -172,7 +172,6 @@ async function create(ctx) {
     into  ${getTableName(ctx.request.url)}(${keyList.join(',')})
     VALUES(${params.join(',')}) returning *;
     `;
-    console.log(sql, 777888)
     const data = await pool.query(sql, valueList);
     return data
 }
@@ -181,7 +180,6 @@ async function create(ctx) {
 async function deleteById(ctx, next) {
     const keys = Object.keys(ctx.request.body)
     const values = Object.values(ctx.request.body)
-    console.log(ctx.request.url)
     const data = await pool.query(`
     delete from ${getTableName(ctx.request.url)} where ${convertColumn(keys[0])} = $1`, [values[0]]);
     return data
