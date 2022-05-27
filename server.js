@@ -76,7 +76,7 @@ app.use(function (ctx, next) {
 
 
 // 不过滤的请求路径
-const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/api.*$/, /\/swiper\/getListByPage/, /\/getListByPage/, /\/getByTypeCode/, /\/getUserInfo/, /\/getBeforeNext/, /\/courses\/getDataById/, /\/comment.*$/, /\/courseType.*$/, /\/course.*$/, /\/homeColumns.*$/];
+const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/api.*$/, /\/swiper\/getListByPage/, /\/getListByPage/, /\/getByTypeCode/, /\/getUserInfo/, /\/getBeforeNext/, /\/courses\/getDataById/, /\/leave_msg\/create/, /\/comment.*$/, /\/courseType.*$/, /\/course.*$/, /\/homeColumns.*$/];
 // Middleware below this line is only reached if JWT token is valid
 app.use(jwt({
     secret: 'kbds random secret'
@@ -115,6 +115,9 @@ app.use(async (ctx, next) => {
                 break;
             case 'getDataById':
                 ctx.request.url = '/getDataById'
+                break;
+            case 'getDataByIdMore':
+                ctx.request.url = '/getDataByIdMore'
                 break;
             case 'getBeforeNext':
                 ctx.request.url = '/getBeforeNext'
