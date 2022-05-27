@@ -24,6 +24,7 @@ const {
     getList,
     getListByPage,
     getDataById,
+    getDataByIdMore,
     deleteMultiple
 } = require('../server/user');
 const fs = require("fs");
@@ -105,6 +106,19 @@ module.exports = (router) => {
             console.log(data)
             ctx.body = {
                 data: data[0], success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    });
+    router.post(`/getDataByIdMore`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getDataById(ctx, next);
+        if (data) {
+            ctx.body = {
+                data: data, success: true, msg: '查询成功！'
             }
             return;
         }
@@ -220,7 +234,32 @@ module.exports = (router) => {
                         roleId: ctx.request.body.roleId, menuId: res
                     }
                 }
+            }
+            create(createNewCtx, next);
+        }
 
+        ctx.body = {
+            success: true, msg: '授权成功！'
+        }
+    });
+    //栏目授权
+    router.post(`/roleColumn/update`, async (ctx, next) => {
+        const newCtx = {
+            request: {
+                url: '/roleColumn/deleteById', body: {
+                    roleId: ctx.request.body.roleId
+                }
+            }
+        }
+        await deleteById(newCtx, next);
+        const menuIds = ctx.request.body['menuIds'] || []
+        for (const res of menuIds) {
+            const createNewCtx = {
+                request: {
+                    url: '/roleColumn/create', body: {
+                        roleId: ctx.request.body.roleId, menuId: res
+                    }
+                }
             }
             data = await create(createNewCtx, next);
         }
@@ -301,15 +340,31 @@ module.exports = (router) => {
             success: true, msg: '获取成功', list: parentData
         }
     });
+    router.post(`/roleColumn/getColumnByRoleId`, async (ctx, next) => {
+        const data = await getApi(ctx, next);
+        const list = [];
+        data.list.forEach(res => {
+            list.push(res['menuData'])
+        })
+        const parentData = list.filter(res => !res.parentId);
+        const childData = list.filter(res => res.parentId);
+        getMenuTree(parentData, childData);
+        ctx.body = {
+            success: true, msg: '获取成功', list: parentData
+        }
+    });
 
     router.post(`/user/createUser`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const roles = ctx.request.body['roles']
+        console.log(roles, 89898)
         delete ctx.request.body['roles']
         const data = await create(ctx, next);
-        roles.forEach(res => {
-            pool.query(`insert into  kb_user_role (user_id,role_id) VALUES($1,$2);`, [data.rows[0].id, res]);
-        })
+        if(roles){
+            roles.forEach(res => {
+                pool.query(`insert into  kb_user_role (user_id,role_id) VALUES($1,$2);`, [data.rows[0].id, res]);
+            })
+        }
         if (data) {
             ctx.body = {
                 id: data, success: true, msg: '添加成功！'
