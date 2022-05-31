@@ -1236,6 +1236,34 @@ module.exports = (router) => {
             // })
         }
     });
+    router.post('/public/uploadEditor', koaBody, async ctx => {
+        try {
+            const {
+                path, name
+            } = ctx.request.files.file;
+            const nameString = name.replace(/([.][^.]+)$/, '') + DateToStr(new Date()) + '.' + ((name.match(/([^.]+)$/)) || [])[1]
+            await fs.copyFileSync(path, `attachs/${nameString}`)
+            ctx.body = {
+                errno: 0,
+                success: true,
+                msg: '上传成功！',
+                data: [
+                    {
+                        url: '/attachs/' + nameString,
+                        alt: name,
+                        href: "",
+                        path: '/attachs/' + nameString,
+                        name: name
+                    },
 
+                ]
+            }
+        } catch (err) {
+            // console.log(`error ${err.message}`)
+            // await ctx.render('error', {
+            //     message: err.message
+            // })
+        }
+    });
     return router;
 };
