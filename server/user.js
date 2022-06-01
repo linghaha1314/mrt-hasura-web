@@ -152,12 +152,14 @@ async function getList(ctx, next) {
 }
 
 //查
-async function getDataById(ctx, next) {
-    const idName = convertColumn((Object.keys(ctx.request.body))[0]);
-    const valueList = Object.values(ctx.request.body)
-    const data = await pool.query(`SELECT * FROM ${getTableName(ctx.request.url)} where ${idName}=$1`, valueList);
+async function getDataById(ctx) {
+    let keys = Object.keys(ctx.request.body);
+    const sort = keys.filter(rr => rr === 'sort') || [];
+    keys = keys.filter(rr => rr !== 'sort');
+    const idName = convertColumn(keys[0]);
+    const sql = sort.length > 0 ? `SELECT * FROM ${getTableName(ctx.request.url)} where ${idName}=$1 order by sequence asc` : `SELECT * FROM ${getTableName(ctx.request.url)} where ${idName}=$1`
+    const data = await pool.query(sql, sort.length > 0 ? [ctx.request.body[keys[0]]] : [ctx.request.body[keys[0]]]);
     return covertColumnByType(data.rows, 2)
-
 }
 
 //增

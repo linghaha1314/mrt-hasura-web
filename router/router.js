@@ -113,6 +113,7 @@ module.exports = (router) => {
             success: false, msg: '查询失败！'
         }
     });
+
     router.post(`/getDataByIdMore`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getDataById(ctx, next);
@@ -235,13 +236,15 @@ module.exports = (router) => {
                     }
                 }
             }
-            create(createNewCtx, next);
+            data = await create(createNewCtx, next);
         }
-
-        ctx.body = {
-            success: true, msg: '授权成功！'
+        if (data) {
+            ctx.body = {
+                success: true, msg: '授权成功！'
+            }
         }
     });
+
     //栏目授权
     router.post(`/roleColumn/update`, async (ctx, next) => {
         const newCtx = {
@@ -340,6 +343,7 @@ module.exports = (router) => {
             success: true, msg: '获取成功', list: parentData
         }
     });
+
     router.post(`/roleColumn/getColumnByRoleId`, async (ctx, next) => {
         const data = await getApi(ctx, next);
         const list = [];
@@ -360,7 +364,7 @@ module.exports = (router) => {
         console.log(roles, 89898)
         delete ctx.request.body['roles']
         const data = await create(ctx, next);
-        if(roles){
+        if (roles) {
             roles.forEach(res => {
                 pool.query(`insert into  kb_user_role (user_id,role_id) VALUES($1,$2);`, [data.rows[0].id, res]);
             })
@@ -465,8 +469,7 @@ module.exports = (router) => {
             const objCtx = {
                 request: {
                     body: {
-                        id: res.id,
-                        isCurrentRole: false
+                        id: res.id, isCurrentRole: false
                     }, url: '/userRole/updateById'
                 }
             }
@@ -638,11 +641,9 @@ module.exports = (router) => {
     });
 
     //创建工作流
-    router.post(`/workflow/createProcess`, async (ctx, next) => {
-        // //创建工作流
+    router.post(`/workflow/createProcess`, async (ctx) => {
+        //创建工作流
         ctx.request.url = '/workflowStart/create'
-        const workData = covertColumnByType((await create(ctx)).rows, 2)
-        //查询approvalId的具体流程
         const approvalCtx = {
             request: {
                 method: 'GET', query: {
@@ -651,6 +652,11 @@ module.exports = (router) => {
             }
         }
         const approvalData = await getListByPage(approvalCtx)
+        ctx.request.body.steps = approvalData.list.length || 0
+        ctx.request.body.currentRoleId = approvalData.list[0].roleId
+        //设置当前工作流的步骤数
+        const workData = covertColumnByType((await create(ctx)).rows, 2)
+        //查询approvalId的具体流程
         for (const res of approvalData.list) {
             const index = approvalData.list.indexOf(res);
             const processDetailCtx = {
@@ -659,9 +665,8 @@ module.exports = (router) => {
                         workflowId: workData[0].id,
                         status: 11,
                         objectId: ctx.request.body.objectId,
+                        roleId: res.roleId,
                         approvalProcessId: ctx.request.body['approvalProcessId'],
-                        stepProcessId: res.id,
-                        isCurrentApproval: index === 0 ? true : false,
                         sequence: index + 1
                     }, url: '/processDetail/create'
                 }
@@ -678,26 +683,11 @@ module.exports = (router) => {
             }
         }
         const data = await updateById(updateCourseCtx)
-        console.log('===>>>update', data);
-        // const returnListCtx = {
-        //     method: 'POST', header: ctx.request.header, request: {
-        //         body: {
-        //             objectId: ctx.request.body['objectId']
-        //         }, url: '/process/getStepDetail'
-        //     }
-        // }
-        // //获取返回的流程数据
-        // const data = await getApi(returnListCtx)
-        // const list = [];
-        // data.list.forEach(res => {
-        //     const obj = deconstructionData(res)
-        //     list.push(obj)
-        // })
-        //根据approvalId设置对应的--审批具体步骤
         ctx.body = {
             list: data, success: true, msg: '提交成功！'
         }
     });
+
     //获取工作流详情
     router.post(`/process/getStepDetail`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
@@ -717,14 +707,89 @@ module.exports = (router) => {
             success: false, msg: '查询失败！'
         }
     });
+
+    //工作流审批
+    router.post(`/process/agree`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        //更新当前的审批步骤详情
+        const updateCurrentCtx = {
+            request: {
+                body: {
+                    id: ctx.request.body.id, status: ctx.request.body.status,
+                }, url: '/processDetail/update'
+            }
+        }
+        await updateById(updateCurrentCtx)
+        /**/
+        const workflowCtx = {
+            request: {
+                body: {
+                    id: ctx.request.body.workflowId,
+                    status: 11, currentRoleId: null,
+                }, url: '/workflowStart/updateById'
+            }
+        }
+        /**/
+        if (ctx.request.body.status === 0) {
+            workflowCtx.request.body.status = 0;
+        } else {
+            //查询审批流程详情列表
+            const approvalDetailListCtx = {
+                request: {
+                    method: 'GET', query: {
+                        limit: 1000, offset: 0, workflowId: ctx.request.body['workflowId'], sort: 'sequence asc'
+                    }, url: '/processDetail/getListByPage'
+                }
+            }
+            const list = (await getListByPage(approvalDetailListCtx)).list || []
+            //更新workflow
+            list.forEach((rr, index) => {
+                if (rr.id === ctx.request.body.id) {
+                    if (index !== list.length - 1) {
+                        workflowCtx.request.body.currentRoleId = (list[index + 1]).roleId
+                    }
+                }
+            })
+        }
+        const courseUpdateCtx = {
+            request: {
+                body: {
+                    id: ctx.request.body.objectId, status: 1
+                }, url: '/courses/updateById'
+            }
+        }
+        if (!workflowCtx.request.body.currentRoleId) {
+            workflowCtx.request.body.status = ctx.request.body.status;  //审批完了状态变成1，驳回状态变成0
+            courseUpdateCtx.request.body.status = ctx.request.body.status;
+            await updateById(courseUpdateCtx)
+            //已经是最后一个人审批；改变workflow的status状态，并且改变课程状态
+        }
+        /*设置课程状态*/
+        const result = await updateById(workflowCtx)
+        console.log('====>>workflowCtx>', workflowCtx, '====zzz', result)
+        if (result) {
+            ctx.body = {
+                list: result, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    });
+
     //根据roleId获取当前可以审批的课程
     router.get(`/process/getCourseByRoleId`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx)
-        console.log('==>>>data', data);
         const list = [];
         data.list.forEach(res => {
             const obj = deconstructionData(res)
+            const approvalList = [];
+            res['approvalList'].forEach(rr => {
+                approvalList.push(deconstructionData(rr));
+            })
+            obj.approvalList = approvalList
             list.push(obj)
         })
         if (list) {
@@ -1244,17 +1309,9 @@ module.exports = (router) => {
             const nameString = name.replace(/([.][^.]+)$/, '') + DateToStr(new Date()) + '.' + ((name.match(/([^.]+)$/)) || [])[1]
             await fs.copyFileSync(path, `attachs/${nameString}`)
             ctx.body = {
-                errno: 0,
-                success: true,
-                msg: '上传成功！',
-                data: [
-                    {
-                        url: '/attachs/' + nameString,
-                        alt: name,
-                        href: "",
-                        path: '/attachs/' + nameString,
-                        name: name
-                    },
+                errno: 0, success: true, msg: '上传成功！', data: [{
+                    url: '/attachs/' + nameString, alt: name, href: "", path: '/attachs/' + nameString, name: name
+                },
 
                 ]
             }
