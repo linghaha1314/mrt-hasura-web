@@ -38,14 +38,14 @@ module.exports = (router) => {
     router.post(`/create`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await create(ctx, next);
-        if (data) {
+        if (data && data.severity !== 'ERROR') {
             ctx.body = {
                 id: data, success: true, msg: '添加成功！'
             }
             return;
         }
         ctx.body = {
-            success: false, msg: '新增失败！'
+            success: false, msg: '请确认字段是否重复！'
         }
     });
 
@@ -1222,7 +1222,7 @@ module.exports = (router) => {
             const {
                 path, name
             } = ctx.request.files.file;
-            const nameString = name.replace(/([.][^.]+)$/, '') + DateToStr(new Date()) + '.' + ((name.match(/([^.]+)$/)) || [])[1]
+            const nameString = name.replace(/([.][^.]+)$/, '')+ '-' + DateToStr(new Date()) + '.' + ((name.match(/([^.]+)$/)) || [])[1]
             await fs.copyFileSync(path, `attachs/${nameString}`)
             ctx.body = {
                 success: true, msg: '上传成功！', data: {

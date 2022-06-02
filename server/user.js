@@ -70,9 +70,9 @@ function covertColumnByType(data, type = 1) {
 //登录验证
 async function validLogin(loginObj) {
     // 连续登录五次错误就锁住这个帐号；登录错误就记录一次；
-    const user = await pool.query('SELECT * FROM kb_user where job_num=$1', [loginObj.username]);
+    const user = await pool.query('SELECT * FROM kb_user where username=$1', [loginObj.username]);
     console.log('===>>??', user);
-    const pass = await pool.query(`SELECT * FROM kb_user where job_num=$1 And password=$2`, [loginObj.username, loginObj.password]);
+    const pass = await pool.query(`SELECT * FROM kb_user where username=$1 And password=$2`, [loginObj.username, loginObj.password]);
     if (user.rows.length === 0) {
         result.msg = '用户名错误！';
         result.success = false;
@@ -157,7 +157,6 @@ async function getDataById(ctx, next) {
     const valueList = Object.values(ctx.request.body)
     const data = await pool.query(`SELECT * FROM ${getTableName(ctx.request.url)} where ${idName}=$1`, valueList);
     return covertColumnByType(data.rows, 2)
-
 }
 
 //增
@@ -172,8 +171,14 @@ async function create(ctx) {
     into  ${getTableName(ctx.request.url)}(${keyList.join(',')})
     VALUES(${params.join(',')}) returning *;
     `;
-    const data = await pool.query(sql, valueList);
-    return data
+    return pool.query(sql, valueList).then(res => {
+        return res
+    }).catch(err => {
+        return err
+    })
+    // console.log(pool.query(sql, valueList), 999)
+    // const data = await pool.query(sql, valueList);
+    // return data
 }
 
 //删
