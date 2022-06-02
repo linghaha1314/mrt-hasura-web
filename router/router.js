@@ -689,17 +689,18 @@ module.exports = (router) => {
     });
 
     //获取工作流详情
-    router.post(`/process/getStepDetail`, async (ctx, next) => {
+    router.post(`/workflowStart/getStepDetailList`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx)
-        const list = [];
-        data.list.forEach(res => {
+        const list = data.list.length > 0 ? data.list[0].approvalList : [];
+        const approvalList = [];
+        list.forEach(res => {
             const obj = deconstructionData(res)
-            list.push(obj)
+            approvalList.push(obj)
         })
         if (list) {
             ctx.body = {
-                list: list, success: true, msg: '查询成功！'
+                list: approvalList, success: true, msg: '查询成功！'
             }
             return;
         }
@@ -724,8 +725,7 @@ module.exports = (router) => {
         const workflowCtx = {
             request: {
                 body: {
-                    id: ctx.request.body.workflowId,
-                    status: 11, currentRoleId: null,
+                    id: ctx.request.body.workflowId, status: 11, currentRoleId: null,
                 }, url: '/workflowStart/updateById'
             }
         }
