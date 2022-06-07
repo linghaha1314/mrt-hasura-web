@@ -716,7 +716,10 @@ module.exports = (router) => {
         const updateCurrentCtx = {
             request: {
                 body: {
-                    id: ctx.request.body.id, status: ctx.request.body.status,
+                    id: ctx.request.body.id,
+                    status: ctx.request.body.status,
+                    remark: ctx.request.body.remark || null,
+                    approvalDate: new Date()
                 }, url: '/processDetail/update'
             }
         }
