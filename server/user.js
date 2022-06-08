@@ -2,6 +2,7 @@ const pool = require('../utils/pool');
 const request = require("request-promise");
 const {search} = require("koa/lib/request");
 const refUrl = "http://zyk.mrtcloud.com:8888/api/rest";
+// const refUrl = "http://127.0.0.1:8080/api/rest";
 const result = {
     msg: '', success: false
 };
@@ -174,14 +175,7 @@ async function create(ctx) {
     into  ${getTableName(ctx.request.url)}(${keyList.join(',')})
     VALUES(${params.join(',')}) returning *;
     `;
-    return pool.query(sql, valueList).then(res => {
-        return res
-    }).catch(err => {
-        return err
-    })
-    // console.log(pool.query(sql, valueList), 999)
-    // const data = await pool.query(sql, valueList);
-    // return data
+    return await pool.query(sql, valueList)
 }
 
 //删

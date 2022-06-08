@@ -15,6 +15,7 @@ const jsonwebtoken = require("jsonwebtoken");
 const staticPath = './frontend';
 //crud服务
 const refUrl = "http://zyk.mrtcloud.com:8888";
+// const refUrl = "http://127.0.0.1:8080";
 
 app.keys = ['kbds random secret'];
 app.use(session(app));
@@ -69,8 +70,7 @@ app.use(function (ctx, next) {
             success: false, msg: err.stack
         }
         ctx.error = err;
-        console.error(err.detail )
-        throw err.detail ;
+        throw err;
     });
 });
 
