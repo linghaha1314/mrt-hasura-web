@@ -306,7 +306,7 @@ module.exports = (router) => {
 
     router.post(`/user/resetPass`, async (ctx, next) => {
         ctx.request.url = '/user/updateById'
-        ctx.request.body.change = {password: '123456'}
+        ctx.request.body.change = {password: 'zzrm1111'}
         const data = await getApi(ctx, next);
         if (data) {
             ctx.body = {
