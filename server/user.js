@@ -73,11 +73,16 @@ async function validLogin(loginObj) {
     // 连续登录五次错误就锁住这个帐号；登录错误就记录一次；
     const user = await pool.query('SELECT * FROM kb_user where username=$1', [loginObj.username]);
     console.log('===>>??', user);
-    const pass = await pool.query(`SELECT * FROM kb_user where username=$1 And password=$2`, [loginObj.username, loginObj.password]);
+    const bytes = CryptoJS.AES.decrypt(user.rows[0].password, 'kb12315')
+    const originalText = bytes.toString(CryptoJS.enc.Utf8)
+    console.log(originalText, loginObj.password, 77)
+    // const pass = await pool.query(`SELECT * FROM kb_user where username=$1 And password=$2`, [loginObj.username, loginObj.password]);
+    const pass = originalText === loginObj.password
     if (user.rows.length === 0) {
         result.msg = '用户名错误！';
         result.success = false;
-    } else if (pass.rows.length !== 1 || user.rows[0].locked) {
+    // } else if (pass.rows.length !== 1 || user.rows[0].locked) {
+    } else if (!pass || user.rows[0].locked) {
         if (user.rows[0]['error_num'] <= 1) {
             await pool.query(`update kb_user set error_num=$1,locked=$2 where id=$3`, [0, true, user.rows[0].id]);
         } else {

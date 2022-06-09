@@ -281,6 +281,7 @@ module.exports = (router) => {
 
     //自定义接口
     router.post('/login', async (ctx) => {
+        console.log(ctx.request.body.password, 88)
         const bytes = CryptoJS.AES.decrypt(ctx.request.body.password, 'kb12315')
         const originalText = bytes.toString(CryptoJS.enc.Utf8)
         ctx.request.body.password = originalText
@@ -306,7 +307,7 @@ module.exports = (router) => {
 
     router.post(`/user/resetPass`, async (ctx, next) => {
         ctx.request.url = '/user/updateById'
-        ctx.request.body.change = {password: 'zzrm1111'}
+        ctx.request.body.change = {password: CryptoJS.AES.encrypt('zzrm1111', 'kb12315').toString()}
         const data = await getApi(ctx, next);
         if (data) {
             ctx.body = {
