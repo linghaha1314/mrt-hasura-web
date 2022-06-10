@@ -720,11 +720,12 @@ module.exports = (router) => {
                     id: ctx.request.body.id,
                     status: ctx.request.body.status,
                     remark: ctx.request.body.remark || null,
-                    approvalDate: new Date()
+                    approvalDate: new Date().toISOString().replace(/Z/, "+00")
                 }, url: '/processDetail/update'
             }
         }
         await updateById(updateCurrentCtx)
+        console.log(111);
         /**/
         const workflowCtx = {
             request: {
@@ -755,6 +756,7 @@ module.exports = (router) => {
                 }
             })
         }
+        console.log(222)
         const courseUpdateCtx = {
             request: {
                 body: {
@@ -876,7 +878,7 @@ module.exports = (router) => {
         }
     });
 
-    router.get(`/courses/getDataListByPage`, async (ctx) => {
+    router.post(`/courses/getDataListByPage`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx)
         const list = []
@@ -891,7 +893,7 @@ module.exports = (router) => {
             res['courseColumnData'].forEach(rr => {
                 obj.columnId.push(rr.columnId)
             })
-            list.push(obj)
+            list.push(deconstructionData(obj))
         })
         if (list) {
             ctx.body = {
@@ -1089,16 +1091,16 @@ module.exports = (router) => {
     });
 
     //client接口
-    router.post('/client/login', async (ctx) => {
-        const result = await validLogin(ctx.request.body);
-        ctx.body = result.success ? {
-            ...result, token: jsonwebtoken.sign({
-                data: {
-                    id: result.id, name: ctx.request.body.username
-                }, exp: Math.floor(Date.now() / 1000) + (60 * 60), // 60 seconds * 60 minutes = 1 hour
-            }, 'kbds random secret'),
-        } : result;
-    });
+    // router.post('/client/login', async (ctx) => {
+    //     const result = await validLogin(ctx.request.body);
+    //     ctx.body = result.success ? {
+    //         ...result, token: jsonwebtoken.sign({
+    //             data: {
+    //                 id: result.id, name: ctx.request.body.username
+    //             }, exp: Math.floor(Date.now() / 1000) + (60 * 60), // 60 seconds * 60 minutes = 1 hour
+    //         }, 'kbds random secret'),
+    //     } : result;
+    // });
 
     router.post(`/chapters/getListByCourseId`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
@@ -1291,7 +1293,7 @@ module.exports = (router) => {
             const {
                 path, name
             } = ctx.request.files.file;
-            const nameString = name.replace(/([.][^.]+)$/, '')+ '-' + DateToStr(new Date()) + '.' + ((name.match(/([^.]+)$/)) || [])[1]
+            const nameString = name.replace(/([.][^.]+)$/, '') + '-' + DateToStr(new Date()) + '.' + ((name.match(/([^.]+)$/)) || [])[1]
             await fs.copyFileSync(path, `attachs/${nameString}`)
             ctx.body = {
                 success: true, msg: '上传成功！', data: {

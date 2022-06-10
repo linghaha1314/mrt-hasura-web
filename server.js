@@ -15,7 +15,6 @@ const jsonwebtoken = require("jsonwebtoken");
 const staticPath = './frontend';
 //crud服务
 const refUrl = "http://zyk.mrtcloud.com:8888";
-// const refUrl = "http://127.0.0.1:8080";
 
 app.keys = ['kbds random secret'];
 app.use(session(app));
@@ -70,13 +69,16 @@ app.use(function (ctx, next) {
             success: false, msg: err.stack
         }
         ctx.error = err;
+        console.error(err)
         throw err;
     });
 });
 
 
 // 不过滤的请求路径
-const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/api.*$/, /\/swiper\/getListByPage/, /\/getListByPage/, /\/getByTypeCode/, /\/getUserInfo/, /\/getBeforeNext/, /\/courses\/getDataById/, /\/roleColumn\/getColumnByRoleId/, /\/leave_msg\/create/, /\/comment.*$/, /\/courseType.*$/, /\/course.*$/, /\/homeColumns.*$/];
+const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/api.*$/, /\/swiper\/getListByPage/,
+    /\/getListByPage/, /\/getByTypeCode/, /\/getUserInfo/, /\/getBeforeNext/, /\/courses\/getDataById/, /\/roleColumn\/getColumnByRoleId/,
+    /\/leave_msg\/create/, /\/comment.*$/, /\/courseType.*$/, /\/course.*$/, /\/homeColumns.*$/, /\/msgPush.*$/];
 // Middleware below this line is only reached if JWT token is valid
 app.use(jwt({
     secret: 'kbds random secret'
@@ -106,6 +108,9 @@ app.use(async (ctx, next) => {
                 break;
             case 'deleteById':
                 ctx.request.url = '/deleteById'
+                break;
+            case 'deleteMulti':
+                ctx.request.url = '/deleteMulti'
                 break;
             case 'getList':
                 ctx.request.url = '/getList'
