@@ -109,8 +109,8 @@ app.use(async (ctx, next) => {
             case 'deleteById':
                 ctx.request.url = '/deleteById'
                 break;
-            case 'deleteMulti':
-                ctx.request.url = '/deleteMulti'
+            case 'deleteMultiCondition':
+                ctx.request.url = '/deleteMultiCondition'
                 break;
             case 'getList':
                 ctx.request.url = '/getList'

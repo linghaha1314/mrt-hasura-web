@@ -18,6 +18,7 @@ const {
     refUrl,
     DateToStr,
     changeDataTree,
+    deleteMultiCondition,
     covertColumnByType,
     deconstructionData,
     dictionaryDataByTypeCode,
@@ -155,6 +156,23 @@ module.exports = (router) => {
             success: false, msg: '删除失败！'
         }
     });
+    
+    /*多条件删除*/
+    router.post(`/deleteMultiCondition`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await deleteMultiCondition(ctx, next);
+        if (data) {
+            ctx.body = {
+                data: data, success: true, msg: '删除成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '删除失败！'
+        }
+    });
+
+    //删除层级，多条件删除，包括and,or
 
     router.get(`/api`, async (ctx) => {
         // ctx.set('X-Response-Url', refUrl + ctx.request.url);

@@ -202,6 +202,27 @@ async function deleteMultiple(ctx, next) {
     return data
 }
 
+/*多条件删除*/
+async function deleteMultiCondition(ctx, next) {
+    const type = ctx.request.body.type || 'or'
+    delete ctx.request.body.type
+    const valueList = Object.values(ctx.request.body)
+    const columns = covertColumnByType(Object.keys(ctx.request.body));
+    let whereSql = '';
+    columns.forEach((res, index) => {
+        const num = index + 1
+        if (res.indexOf('id') > -1) {
+            whereSql += (res + "=$" + num + (index === columns.length - 1 ? '' : ' ' + type + ' '))
+        } else {
+            whereSql += (res + ' like $' + num + (index === columns.length - 1 ? '' : ' ' + type + ' '))
+        }
+
+    })
+    const data = await pool.query(`
+    delete from ${getTableName(ctx.request.url)} where ${whereSql}`, valueList)
+    return data
+}
+
 //改
 async function updateById(ctx, next) {
     let columns = ""
@@ -340,6 +361,7 @@ module.exports = {
     updateById,
     getDataById,
     getBeforeNext,
+    deleteMultiCondition,
     deleteMultiple,
     covertColumnByType,
     deconstructionData,
