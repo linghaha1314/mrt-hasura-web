@@ -25,6 +25,7 @@ const {
     getList,
     getListByPage,
     getDataById,
+    createUpdateById,
     getDataByIdMore,
     deleteMultiple
 } = require('../server/user');
@@ -156,8 +157,22 @@ module.exports = (router) => {
             success: false, msg: '删除失败！'
         }
     });
-    
-    /*多条件删除*/
+
+    router.post(`/createUpdateById`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const sum = await createUpdateById(ctx, next);
+        if (sum === ctx.request.body.list.length) {
+            ctx.body = {
+                data: sum, success: true, msg: '设置成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '失败！'
+        }
+    });
+
+    //多条件删除
     router.post(`/deleteMultiCondition`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await deleteMultiCondition(ctx, next);
@@ -600,32 +615,6 @@ module.exports = (router) => {
         }
     });
 
-    router.post(`/courseFiles/update`, async (ctx, next) => {
-        ctx.request.url = ctx.request.realUrl
-        const deleteCtx = {
-            request: {
-                body: {
-                    courseId: ctx.request.body.courseId
-                }, url: '/courseFiles/deleteById'
-            }
-        }
-        await deleteById(deleteCtx, next);
-        for (const res of ctx.request.body.files) {
-            const newCtx = {
-                request: {
-                    body: {
-                        name: res.name, path: res.path, courseId: ctx.request.body.courseId
-                    }, url: '/courseFiles/create'
-                }
-            }
-            const data = await create(newCtx, next);
-            console.log(data)
-        }
-        ctx.body = {
-            success: true, msg: '成功！'
-        }
-    });
-
     router.post(`/courseVerify/update`, async (ctx, next) => {
         const deleteCtx = {
             request: {
@@ -642,6 +631,39 @@ module.exports = (router) => {
                     body: {
                         time: res.time, typeId: res.typeId, courseId: ctx.request.body.courseId
                     }, url: '/courseVerify/create'
+                }
+            }
+            const data = await create(newCtx, next);
+            console.log(data)
+            sum += data.rowCount
+        }
+        if (sum === ctx.request.body['verifyList'].length) {
+            ctx.body = {
+                data: sum, success: true, msg: '设置成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '失败！'
+        }
+    });
+
+    router.post(`/courseFiles/update`, async (ctx, next) => {
+        const deleteCtx = {
+            request: {
+                body: {
+                    courseId: ctx.request.body.courseId
+                }, url: '/courseFiles/deleteById'
+            }
+        }
+        await deleteById(deleteCtx, next);
+        let sum = 0;
+        for (const res of ctx.request.body['verifyList']) {
+            const newCtx = {
+                request: {
+                    body: {
+                        time: res.time, typeId: res.typeId, courseId: ctx.request.body.courseId
+                    }, url: '/courseFiles/create'
                 }
             }
             const data = await create(newCtx, next);
@@ -1325,6 +1347,24 @@ module.exports = (router) => {
             // })
         }
     });
+
+    // router.post('/public/removeFile', koaBody, async ctx => {
+    //     try {
+    //         const {name} = ctx.request.files.file;
+    //         fs.unlinkSync(`attachs/${name}.txt`);
+    //         ctx.body = {
+    //             success: true, msg: '删除成功！', data: {
+    //                 path: '/attachs/' + name, name: name
+    //             }
+    //         }
+    //     } catch (err) {
+    //         // console.log(`error ${err.message}`)
+    //         // await ctx.render('error', {
+    //         //     message: err.message
+    //         // })
+    //     }
+    // });
+
     router.post('/public/uploadEditor', koaBody, async ctx => {
         try {
             const {

@@ -131,6 +131,7 @@ async function getListByPage(ctx) {
     }
 }
 
+//查
 async function getList(ctx, next) {
     const obj = JSON.parse(JSON.stringify(ctx.request.query));
     delete obj.limit;
@@ -202,7 +203,7 @@ async function deleteMultiple(ctx, next) {
     return data
 }
 
-/*多条件删除*/
+//多条件删除
 async function deleteMultiCondition(ctx, next) {
     const type = ctx.request.body.type || 'or'
     delete ctx.request.body.type
@@ -240,6 +241,33 @@ async function updateById(ctx, next) {
     select * from  ${getTableName(ctx.request.url)}
     where id = $1`, [ctx.request.body.id]);
     return covertColumnByType(currentRow.fields, 2)
+}
+
+async function createUpdateById(ctx, next) {
+    const tableName = ctx.request.url.split('/')[1];
+    const {id, idKey, list} = ctx.request.body
+    //删除数据库原有的数据
+    const deleteCtx = {
+        request: {
+            body: {
+                [idKey]: id
+            }, url: `/${tableName}/deleteById`
+        }
+    }
+    await deleteById(deleteCtx);
+    let sum = 0;
+    for (const res of list) {
+        const newCtx = {
+            request: {
+                body: {
+                    ...res, [idKey]: id
+                }, url: `/${tableName}/create`
+            }
+        }
+        const data = await create(newCtx, next);
+        sum += data.rowCount
+    }
+    return sum
 }
 
 //根据字典typeCode获取所有的data
@@ -361,6 +389,7 @@ module.exports = {
     updateById,
     getDataById,
     getBeforeNext,
+    createUpdateById,
     deleteMultiCondition,
     deleteMultiple,
     covertColumnByType,

@@ -112,6 +112,9 @@ app.use(async (ctx, next) => {
             case 'deleteMultiCondition':
                 ctx.request.url = '/deleteMultiCondition'
                 break;
+            case 'createUpdateById':
+                ctx.request.url = '/createUpdateById'
+                break;
             case 'getList':
                 ctx.request.url = '/getList'
                 break;
