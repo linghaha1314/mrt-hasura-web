@@ -288,6 +288,7 @@ async function getBeforeNext(ctx, next) {
 
 //转发请求
 async function getApi(ctx, next) {
+    console.log('--->>?????query', ctx.request, '34234', ctx.request.query)
     let url = ctx.request.url;
     if (url.indexOf('getListByPage') > -1) {
         ctx.request.query.limit = Number(ctx.request.query.limit || 20);

@@ -945,6 +945,23 @@ module.exports = (router) => {
             success: false, msg: '提交失败！'
         }
     });
+    router.post(`/course/getListPageByWhere`, async (ctx) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx)
+        const list = [];
+        data.list.forEach(res => {
+            list.push(deconstructionData(res))
+        })
+        if (list) {
+            ctx.body = {
+                list: list, total: deconstructionData(data['totalData']).total, success: true, msg: '提交成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '提交失败！'
+        }
+    });
 
     router.post(`/approvalProcessSet/createData`, async (ctx) => {
         const newCtx = {
@@ -1247,7 +1264,7 @@ module.exports = (router) => {
     router.get(`/collectCourse/getDataListByPage`, async (ctx, next) => {
         const data = await getApi(ctx, next);
         ctx.body = {
-            list: data.list, total: data.total, success: true, msg: '查询成功！'
+            list: data.list, total: data.total['aggregate'].count, success: true, msg: '查询成功！'
         }
     });
 
