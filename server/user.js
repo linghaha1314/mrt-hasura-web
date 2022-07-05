@@ -10,6 +10,7 @@ const CryptoJS = require('crypto-js');
 
 //获取表名
 function getTableName(url) {
+    console.log(url);
     let tableName = convertColumn(url.split('/')[1]);
     const strArr = tableName.split('')
     strArr.forEach(res => {

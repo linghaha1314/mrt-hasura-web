@@ -33,7 +33,44 @@ const fs = require("fs");
 const path = require("path");
 const pool = require("../utils/pool");
 const request = require("request");
+
 // const {default: xlsx} = require("node-xlsx");
+async function createUpdateCourses(ctx, next = {}) {
+    const typeIds = ctx.request.body.typeId
+    const columnIds = ctx.request.body.columnId
+    delete ctx.request.body.typeId
+    delete ctx.request.body.columnId
+    let result = {}
+    delete ctx.request.body.id
+    result = await create(ctx, next);
+    let sum = 0;
+    //typeId-课程类型存在
+    for (const res of typeIds) {
+        const newCtx = {
+            request: {
+                body: {
+                    typeId: res, courseId: ctx.request.body.id || result.rows[0].id
+                }, url: '/courseClass/create'
+            }
+        }
+        const data = await create(newCtx, next);
+        sum += data.rowCount
+    }
+    let sumColumn = 0;
+    //columnId-课程栏目存在
+    for (const res of columnIds) {
+        const newCtx = {
+            request: {
+                body: {
+                    columnId: res, courseId: ctx.request.body.id || result.rows[0].id
+                }, url: '/courseColumn/create'
+            }
+        }
+        const data = await create(newCtx, next);
+        sumColumn += data.rowCount
+    }
+    return {courseData: result.rows[0]}
+}
 
 module.exports = (router) => {
     //基础接口
@@ -67,10 +104,17 @@ module.exports = (router) => {
 
     router.get(`/getList`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
+        const isNotSetList = ctx.request.query['isNotSetList'] ?? false
+        delete ctx.request.query.isNotSetList;
         const data = await getList(ctx, next);
-        const parentData = data.list.filter(res => !res.parentId);
-        const childData = data.list.filter(res => res.parentId);
-        getMenuTree(parentData, childData); //如果存在父子关系，变成树状结构
+        let parentData = [];
+        if (!isNotSetList) {
+            parentData = data.list.filter(res => !res.parentId);
+            const childData = data.list.filter(res => res.parentId);
+            getMenuTree(parentData, childData); //如果存在父子关系，变成树状结构
+        } else {
+            parentData = data.list;
+        }
         ctx.body = {
             list: parentData, total: data.total, success: true, msg: '查询成功！'
         }
@@ -918,6 +962,53 @@ module.exports = (router) => {
         }
     });
 
+    //批量导入课程！
+    router.post(`/courses/multiImport`, async (ctx) => {
+        const list = JSON.parse(JSON.stringify(ctx.request.body));
+        //先导入课程
+        let courseCreateResult;
+        let chapterCreateResult;
+        let index;
+        for (const res of list) {
+            index = list.indexOf(res);
+            const chapters = res.children;
+            delete res.children;
+            const createCourseCtx = {
+                request: {
+                    body: res, url: '/courses/createUpdate'
+                }
+            }
+            courseCreateResult = await createUpdateCourses(createCourseCtx);
+            //创建对应章节
+            for (const res1 of chapters) {
+                const dd = chapters.indexOf(res1);
+                const chapterCreateCtx = {
+                    request: {
+                        body: {
+                            courseId: courseCreateResult.courseData.id,
+                            name: res1.name,
+                            parentId: null,
+                            path: res1.path,
+                            sequence: dd + 1,
+                            video: null
+                        }, url: "/chapters/create"
+                    }
+                }
+                chapterCreateResult = await create(chapterCreateCtx);
+            }
+        }
+        //再导入章节
+        if (courseCreateResult && chapterCreateResult) {
+            ctx.body = {
+                data: {courseCreateResult, chapterCreateResult}, total: index, success: true, msg: '提交成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '提交失败！'
+        }
+    });
+
     router.post(`/courses/getDataListByPage`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx)
@@ -945,6 +1036,7 @@ module.exports = (router) => {
             success: false, msg: '提交失败！'
         }
     });
+
     router.post(`/course/getListPageByWhere`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx)
