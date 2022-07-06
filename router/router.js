@@ -458,7 +458,7 @@ module.exports = (router) => {
         }
     });
 
-    router.get(`/user/getUserListByPage`, async (ctx, next) => {
+    router.post(`/user/getUserListByPage`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx, next);
         data.list.forEach((res, index) => {
@@ -809,7 +809,6 @@ module.exports = (router) => {
             }
         }
         await updateById(updateCurrentCtx)
-        console.log(111);
         /**/
         const workflowCtx = {
             request: {
@@ -840,7 +839,6 @@ module.exports = (router) => {
                 }
             })
         }
-        console.log(222)
         const courseUpdateCtx = {
             request: {
                 body: {
@@ -856,7 +854,6 @@ module.exports = (router) => {
         }
         /*设置课程状态*/
         const result = await updateById(workflowCtx)
-        console.log('====>>workflowCtx>', workflowCtx, '====zzz', result)
         if (result) {
             ctx.body = {
                 list: result, success: true, msg: '查询成功！'

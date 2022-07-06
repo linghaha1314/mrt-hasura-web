@@ -2,7 +2,7 @@ const pool = require('../utils/pool');
 const request = require("request-promise");
 const {search} = require("koa/lib/request");
 const refUrl = "http://zyk.mrtcloud.com:8888/api/rest";
-// const refUrl = "http://127.0.0.1:8080/api/rest";
+// const refUrl = "http://192.168.1.152:8080/api/rest";
 const result = {
     msg: '', success: false
 };

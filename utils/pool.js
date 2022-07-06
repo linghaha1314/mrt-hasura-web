@@ -6,6 +6,13 @@ const pool = new Pool({
     password: '1234',
     port: 51436,
 });
+// const pool = new Pool({
+//     user: 'postgres',
+//     host: '192.168.1.152',
+//     database: 'postgres',
+//     password: '1234',
+//     port: 5432,
+// });
 // the pool will emit an error on behalf of any idle clients
 // it contains if a backend error or network partition happens
 pool.on('error', (err, client) => {
