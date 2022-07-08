@@ -293,6 +293,35 @@ module.exports = (router) => {
         }
     });
 
+    //首页栏目
+    router.post(`/roleAuthorityHomeColumn/update`, async (ctx, next) => {
+        const newCtx = {
+            request: {
+                url: '/roleHomeColumn/deleteById', body: {
+                    roleId: ctx.request.body.roleId
+                }
+            }
+        }
+        await deleteById(newCtx, next);
+        const menuIds = ctx.request.body['menuIds'] || []
+        let data = {};
+        for (const res of menuIds) {
+            const createNewCtx = {
+                request: {
+                    url: '/roleHomeColumn/create', body: {
+                        roleId: ctx.request.body.roleId, columnId: res
+                    }
+                }
+            }
+            data = await create(createNewCtx, next);
+        }
+        if (data) {
+            ctx.body = {
+                success: true, msg: '授权成功！'
+            }
+        }
+    });
+
     //菜单授权
     router.post(`/roleAuthority/update`, async (ctx, next) => {
         const newCtx = {
