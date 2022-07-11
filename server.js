@@ -14,8 +14,9 @@ const jsonwebtoken = require("jsonwebtoken");
 //编译后静态路径
 const staticPath = './frontend';
 //crud服务
-const refUrl = "http://zyk.mrtcloud.com:8888";
-// const refUrl = "http://192.168.1.152:8080";
+// const refUrl = "http://zyk.mrtcloud.com:8888";
+const refUrl = "http://127.0.0.1:8080";
+// const refUrl = "http://192.168.1.60:5800";
 app.keys = ['kbds random secret'];
 app.use(session(app));
 // 添加单点登录

@@ -1453,7 +1453,8 @@ module.exports = (router) => {
     //读取图片
     router.get('/attachs/:name', ctx => {
         try {
-            const filePath = decodeURI(path.join(__dirname.split('/router')[0], ctx.url));
+            // const filePath = decodeURI(path.join(__dirname.split('/router')[0], ctx.url));
+            const filePath = decodeURI(path.join(__dirname.split('router')[0], ctx.url));
             const file = fs.readFileSync(filePath);
             let mimeType = mime.lookup(filePath);
             ctx.set('content-type', mimeType);
