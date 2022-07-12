@@ -11,16 +11,20 @@ const control = require('./router/router');
 const request = require('request-promise');
 const cors = require('koa2-cors');
 const jsonwebtoken = require("jsonwebtoken");
+const {
+    create
+} = require('./server/user');
 //编译后静态路径
 const staticPath = './frontend';
 //crud服务
 // const refUrl = "http://zyk.mrtcloud.com:8888";
-const refUrl = "http://127.0.0.1:8080";
-// const refUrl = "http://192.168.1.60:5800";
+// const refUrl = "http://127.0.0.1:8080";
+const refUrl = "http://192.168.11.35:9090";
 app.keys = ['kbds random secret'];
 app.use(session(app));
 // 添加单点登录
 const CasClient = require('./utils/cas-client');
+const pool = require("./utils/pool");
 const cas = new CasClient({
     cas_url: 'http://localhost:8080',
     service_url: 'http://localhost:3001',
@@ -49,9 +53,24 @@ app.use(async (ctx, next) => {
     //     ctx.body = file; //返回图片
     // }
     if (reUrl.length > 0) {
-        console.log(`${ctx.method} ${ctx.url} redirect to ${reUrl} - ${rt}`);
+        console.log(`${ctx.method} ${ctx.url} redirect to ${reUrl} - ${rt}`, 88888);
     } else {
-        console.log(`${ctx.method} ${ctx.url} - ${rt}`);
+        console.log(`${ctx.method} ${ctx.url} - ${rt}`, 77777);
+    }
+    if(ctx.getUserId){
+        // 收集日志字段信息
+        const body = {
+            staffId: ctx.getUserId,
+            url: ctx.originalUrl,
+            result: ctx.response.body.msg
+        }
+        const valueList = Object.values(body)
+        const sql = `
+            insert
+            into  kb_log(staff_id,url,result)
+            VALUES($1,$2,$3) returning *;
+            `;
+        pool.query(sql, valueList)
     }
 });
 
