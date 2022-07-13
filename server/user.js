@@ -1,8 +1,8 @@
 const pool = require('../utils/pool');
 const request = require("request-promise");
 const {search} = require("koa/lib/request");
-// const refUrl = "http://192.168.1.60:5800/api/rest";
-const refUrl = "http://127.0.0.1:8080/api/rest";
+const refUrl = "http://192.168.11.35:9090//api/rest";
+// const refUrl = "http://127.0.0.1:8080/api/rest";
 const result = {
     msg: '', success: false
 };
@@ -10,6 +10,7 @@ const CryptoJS = require('crypto-js');
 
 //获取表名
 function getTableName(url) {
+    console.log(url);
     let tableName = convertColumn(url.split('/')[1]);
     const strArr = tableName.split('')
     strArr.forEach(res => {
@@ -288,7 +289,6 @@ async function getBeforeNext(ctx, next) {
 
 //转发请求
 async function getApi(ctx, next) {
-    console.log('--->>?????query', ctx.request, '34234', ctx.request.query)
     let url = ctx.request.url;
     if (url.indexOf('getListByPage') > -1) {
         ctx.request.query.limit = Number(ctx.request.query.limit || 20);

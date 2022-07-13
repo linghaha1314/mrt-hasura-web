@@ -1081,24 +1081,37 @@ module.exports = (router) => {
         }
     });
 
-    router.post(`/approvalProcessSet/createData`, async (ctx) => {
-        const newCtx = {
-            request: {
-                body: {
-                    name: ctx.request.body['approval'].name || null,
-                }, url: '/approvalProcessSet/create'
-            },
+    router.post(`/approvalProcessSet/createUpdateData`, async (ctx) => {
+        let data;
+        if (ctx.request.body.id) {
+            const deleteCtx = {
+                request: {
+                    body: {parentId: ctx.request.body.id}, url: '/approvalProcessSet/deleteById'
+                }
+            }
+            data = await deleteById(deleteCtx);
+        } else {
+            const newCtx = {
+                request: {
+                    body: {
+                        name: ctx.request.body.name || null,
+                        typeId: ctx.request.body.typeId
+                    }, url: '/approvalProcessSet/create'
+                },
+            }
+            data = await create(newCtx)
         }
-        const data = await create(newCtx)
-        for (const res of ctx.request.body['approval'].list) {
+        for (const res of ctx.request.body.list) {
             const createCtx = {
                 request: {
                     body: {
-                        roleId: res.roleId || null, parentId: data.rows[0].id
+                        roleId: res.roleId || null, parentId: ctx.request.body.id || data.rows[0].id
                     }, url: '/approvalProcessSet/create'
                 }
             }
-            await create(createCtx)
+            if (res.roleId) {
+                await create(createCtx)
+            }
         }
         if (true) {
             ctx.body = {
@@ -1123,9 +1136,33 @@ module.exports = (router) => {
         const parentData = list.filter(res => !res.parentId);
         const childData = list.filter(res => res.parentId);
         getMenuTree(parentData, childData);
+        const resultList = [];
+        parentData.forEach(res => {
+            resultList.push(deconstructionData(res));
+        })
         if (true) {
             ctx.body = {
-                list: parentData, total: data['totalData']['aggregate'].count, success: true, msg: '提交成功！'
+                list: resultList, total: data['totalData']['aggregate'].count, success: true, msg: '提交成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '提交失败！'
+        }
+    });
+
+    router.post(`/approvalProcess/delete`, async (ctx) => {
+        const deleteCtx = {
+            request: {
+                body: {id: ctx.request.body.id}, url: '/approvalProcessSet/deleteById'
+            }
+        }
+        const data1 = await deleteById(deleteCtx);
+        deleteCtx.request.body = {parentId: ctx.request.body.id};
+        const data2 = await deleteById(deleteCtx);
+        if (true) {
+            ctx.body = {
+                list: data2, success: true, msg: '提交成功！'
             }
             return;
         }
