@@ -1,7 +1,8 @@
 const pool = require('../utils/pool');
 const request = require("request-promise");
 const {search} = require("koa/lib/request");
-const {refUrl} = require('../config.js')
+let {refUrl} = require('../config.js')
+refUrl = refUrl + '/api/rest';
 const result = {
     msg: '', success: false
 };

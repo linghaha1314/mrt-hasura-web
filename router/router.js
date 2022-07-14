@@ -137,16 +137,22 @@ module.exports = (router) => {
     });
 
     router.post(`/roleAuthority/getMenusByRoleId`, async (ctx, next) => {
-        const data = await getApi(ctx, next);
-        const list = [];
-        data.list.forEach(res => {
-            list.push(res['menuData'])
-        })
-        const parentData = list.filter(res => !res.parentId);
-        const childData = list.filter(res => res.parentId);
-        getMenuTree(parentData, childData);
-        ctx.body = {
-            success: true, msg: '获取成功', list: parentData
+        try {
+            const data = await getApi(ctx, next);
+            const list = [];
+            data.list.forEach(res => {
+                list.push(res['menuData'])
+            })
+            const parentData = list.filter(res => !res.parentId);
+            const childData = list.filter(res => res.parentId);
+            getMenuTree(parentData, childData);
+            ctx.body = {
+                success: true, msg: '获取成功', list: parentData
+            }
+        } catch (e) {
+            ctx.body = {
+                success: false, msg: '没有请求成功，接口被拦截'
+            }
         }
     });
 
