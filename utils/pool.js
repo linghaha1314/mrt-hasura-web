@@ -1,11 +1,6 @@
 const {Pool} = require('pg');
-const pool = new Pool({
-    user: 'postgres',
-    host: '192.168.11.35',
-    database: 'postgres',
-    password: '1234',
-    port: 5436,
-});
+const {poolObj} = require('../config')
+const pool = new Pool(poolObj);
 // // the pool will emit an error on behalf of any idle clients
 // // it contains if a backend error or network partition happens
 // pool.on('error', (err, client) => {

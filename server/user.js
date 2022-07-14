@@ -1,8 +1,7 @@
 const pool = require('../utils/pool');
 const request = require("request-promise");
 const {search} = require("koa/lib/request");
-const refUrl = "http://192.168.11.35:9090//api/rest";
-// const refUrl = "http://127.0.0.1:8080/api/rest";
+const {refUrl} = require('../config.js')
 const result = {
     msg: '', success: false
 };

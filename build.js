@@ -18,7 +18,7 @@ function copyDir(srcDir, desDir) {
     const files = fs.readdirSync(srcDir, {withFileTypes: true})
     for (let i = 0; i < files.length; i++) {
         const file = files[i]
-        if (file.name === 'attachs' || file.name === targetPath || file.name === targetPath + '.zip' || file.name === 'build.js' || file.name === 'config.js' || file.name === '归档.zip') {
+        if (file.name === 'attachs' || file.name === targetPath || file.name === targetPath + '.zip' || file.name === 'build.js' || file.name === 'config.js' || file.name === '归档.zip' || file.name === '.git') {
             console.log('不拷贝')
         } else if (file.isDirectory()) {
             const dirS = path.resolve(srcDir, file.name);
