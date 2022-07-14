@@ -1,13 +1,6 @@
 const svgCaptcha = require('svg-captcha')
 const {
-    getApi,
-    getMenuTree,
-    updateById,
-    create,
-    deleteById,
-    covertColumnByType,
-    deconstructionData,
-    getListByPage,
+    getApi, getMenuTree, updateById, create, deleteById, covertColumnByType, deconstructionData, getListByPage,
 } = require('../server/user');
 const pool = require("../utils/pool");
 
@@ -877,29 +870,21 @@ module.exports = (router) => {
     });
 
     router.post(`/note/getDataListByPage`, async (ctx) => {
-        try {
-            ctx.request.url = ctx.request.realUrl
-            const data = await getApi(ctx);
-            const list = [];
-            data.list.forEach(res => {
-                const obj = deconstructionData(res);
-                list.push(obj);
-            })
-            if (true) {
-                ctx.body = {
-                    list: list, total: deconstructionData(data['totalData']), success: true, msg: '提交成功！'
-                }
-                return;
-            }
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx);
+        const list = [];
+        data.list.forEach(res => {
+            const obj = deconstructionData(res);
+            list.push(obj);
+        })
+        if (true) {
             ctx.body = {
-                success: false, msg: '提交失败！'
+                list: list, total: deconstructionData(data['totalData']), success: true, msg: '提交成功！'
             }
-        } catch (e) {
-            //状态变成500，请求失败，并且返回对应的报错
-            console.log('noteCtx', ctx.error)
-            ctx.body = {
-                success: false, msg: ctx.error
-            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '提交失败！'
         }
     });
 

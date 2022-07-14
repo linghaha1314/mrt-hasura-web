@@ -55,12 +55,10 @@ app.use(async (ctx, next) => {
     } else {
         console.log(`${ctx.method} ${ctx.url} - ${rt}`, 77777);
     }
-    if(ctx.getUserId){
+    if (ctx.getUserId) {
         // 收集日志字段信息
         const body = {
-            staffId: ctx.getUserId,
-            url: ctx.originalUrl,
-            result: ctx.response.body.msg
+            staffId: ctx.getUserId, url: ctx.originalUrl, result: ctx.response.body.msg
         }
         const valueList = Object.values(body)
         const sql = `
@@ -83,20 +81,17 @@ app.use(async (ctx, next) => {
 //错误处理
 app.use(function (ctx, next) {
     return next().catch((err) => {
-        ctx.body = {
-            success: false, msg: err.stack
-        }
-        ctx.error = err;
-        console.error(err)
-        throw err;
+        ctx.status = err.status || 500;
+        console.error('===>>???', err);
+        ctx.body = err.message;
+        ctx.app.emit("error", err, ctx);
+        //错误要返回具体的错误数据
     });
 });
 
 
 // 不过滤的请求路径
-const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/api.*$/, /\/swiper\/getListByPage/,
-    /\/getListByPage/, /\/getByTypeCode/, /\/getUserInfo/, /\/getBeforeNext/, /\/courses\/getDataById/, /\/roleColumn\/getColumnByRoleId/, /\/user\/updateUserById/,
-    /\/leave_msg\/create/, /\/comment.*$/, /\/courseType.*$/, /\/course.*$/, /\/homeColumns.*$/, /\/msgPush.*$/]; // /user/updateUserById
+const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/api.*$/, /\/swiper\/getListByPage/, /\/getListByPage/, /\/getByTypeCode/, /\/getUserInfo/, /\/getBeforeNext/, /\/courses\/getDataById/, /\/roleColumn\/getColumnByRoleId/, /\/user\/updateUserById/, /\/leave_msg\/create/, /\/comment.*$/, /\/courseType.*$/, /\/course.*$/, /\/homeColumns.*$/, /\/msgPush.*$/]; // /user/updateUserById
 // Middleware below this line is only reached if JWT token is valid
 app.use(jwt({
     secret: 'kbds random secret'
