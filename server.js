@@ -11,9 +11,7 @@ const control = require('./router/router');
 const request = require('request-promise');
 const cors = require('koa2-cors');
 const jsonwebtoken = require("jsonwebtoken");
-const {
-    create
-} = require('./server/user');
+const {create} = require('./server/user');
 //编译后静态路径
 const staticPath = './frontend';
 //crud服务
