@@ -3,6 +3,7 @@ node_modules
 /dist
 hasura-dist.*
 hasura-dist
+attachs
 
 # local env files
 .env.local

@@ -11,16 +11,16 @@ const control = require('./router/router');
 const request = require('request-promise');
 const cors = require('koa2-cors');
 const jsonwebtoken = require("jsonwebtoken");
-const {create} = require('./server/user');
-const {refUrl} = require('./config.js')
 //编译后静态路径
 const staticPath = './frontend';
 //crud服务
+// const refUrl = "http://zyk.mrtcloud.com:8888";
+// const refUrl = "http://127.0.0.1:8080";
+const {refUrl} = require('./config')
 app.keys = ['kbds random secret'];
 app.use(session(app));
 // 添加单点登录
 const CasClient = require('./utils/cas-client');
-const pool = require("./utils/pool");
 const cas = new CasClient({
     cas_url: 'http://localhost:8080',
     service_url: 'http://localhost:3001',
@@ -49,22 +49,9 @@ app.use(async (ctx, next) => {
     //     ctx.body = file; //返回图片
     // }
     if (reUrl.length > 0) {
-        console.log(`${ctx.method} ${ctx.url} redirect to ${reUrl} - ${rt}`, 88888);
+        console.log(`${ctx.method} ${ctx.url} redirect to ${reUrl} - ${rt}`);
     } else {
-        console.log(`${ctx.method} ${ctx.url} - ${rt}`, 77777);
-    }
-    if (ctx.getUserId) {
-        // 收集日志字段信息
-        const body = {
-            staffId: ctx.getUserId, url: ctx.originalUrl, result: ctx.response.body.msg
-        }
-        const valueList = Object.values(body)
-        const sql = `
-            insert
-            into  kb_log(staff_id,url,result)
-            VALUES($1,$2,$3) returning *;
-            `;
-        pool.query(sql, valueList)
+        console.log(`${ctx.method} ${ctx.url} - ${rt}`);
     }
 });
 
@@ -89,7 +76,7 @@ app.use(function (ctx, next) {
 
 
 // 不过滤的请求路径
-const ignoreUrl = require('./ignore-path')
+const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/api.*$/, /\/swiper\/getListByPage/, /\/getListByPage/, /\/getByTypeCode/, /\/getUserInfo/, /\/getBeforeNext/, /\/courses\/getDataById/, /\/roleColumn\/getColumnByRoleId/, /\/user\/updateUserById/, /\/leave_msg\/create/, /\/comment.*$/, /\/courseType.*$/, /\/course.*$/, /\/homeColumns.*$/, /\/msgPush.*$/]; // /user/updateUserById
 // Middleware below this line is only reached if JWT token is valid
 app.use(jwt({
     secret: 'kbds random secret'

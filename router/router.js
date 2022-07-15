@@ -1,6 +1,14 @@
 const svgCaptcha = require('svg-captcha')
 const {
-    getApi, getMenuTree, updateById, create, deleteById, covertColumnByType, deconstructionData, getListByPage,
+    getApi,
+    getMenuTree,
+    updateById,
+    create,
+    deleteById,
+    covertColumnByType,
+    deconstructionData,
+    getListByPage,
+    invertCtxData,
 } = require('../server/user');
 const pool = require("../utils/pool");
 

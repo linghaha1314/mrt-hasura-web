@@ -1,8 +1,10 @@
 const pool = require('../utils/pool');
 const request = require("request-promise");
 const {search} = require("koa/lib/request");
+// const refUrl = "http://zyk.mrtcloud.com:8888/api/rest";
+// const refUrl = "http://127.0.0.1:8080/api/rest";
 let {refUrl} = require('../config.js')
-refUrl = refUrl + '/api/rest';
+refUrl = refUrl + '/api/rest'
 const result = {
     msg: '', success: false
 };
@@ -10,7 +12,6 @@ const CryptoJS = require('crypto-js');
 
 //获取表名
 function getTableName(url) {
-    console.log(url);
     let tableName = convertColumn(url.split('/')[1]);
     const strArr = tableName.split('')
     strArr.forEach(res => {
@@ -289,6 +290,7 @@ async function getBeforeNext(ctx, next) {
 
 //转发请求
 async function getApi(ctx, next) {
+    console.log('--->>?????query', ctx.request, '34234', ctx.request.query)
     let url = ctx.request.url;
     if (url.indexOf('getListByPage') > -1) {
         ctx.request.query.limit = Number(ctx.request.query.limit || 20);
@@ -376,6 +378,16 @@ function DateToStr(date) {
     return year.toString() + ((month + 1) > 9 ? (month + 1) : "0" + (month + 1)).toString() + (day > 9 ? day : ("0" + day)).toString() + (hours > 9 ? hours : ("0" + hours)).toString() + (min > 9 ? min : ("0" + min)).toString() + (second > 9 ? second : ("0" + second)).toString();
 }
 
+//
+function invertCtxData(body, url) {
+    const ctx = {
+        request: {
+            body, url
+        }
+    }
+    return ctx
+}
+
 module.exports = {
     refUrl,
     deleteById,
@@ -385,6 +397,7 @@ module.exports = {
     getListByPage,
     getMenuTree,
     changeDataTree,
+    invertCtxData,
     create,
     DateToStr,
     updateById,
