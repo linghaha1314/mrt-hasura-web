@@ -290,7 +290,6 @@ async function getBeforeNext(ctx, next) {
 
 //转发请求
 async function getApi(ctx, next) {
-    console.log('--->>?????query', ctx.request, '34234', ctx.request.query)
     let url = ctx.request.url;
     if (url.indexOf('getListByPage') > -1) {
         ctx.request.query.limit = Number(ctx.request.query.limit || 20);
@@ -379,10 +378,24 @@ function DateToStr(date) {
 }
 
 //
-function invertCtxData(body, url) {
-    const ctx = {
+function invertCtxData(body, url, http = 'post', type = null) {
+    let ctx = {
         request: {
-            body, url
+            url
+        }
+    }
+    if (http === 'get') {
+        ctx.request.query = body
+    } else {
+        ctx.request.body = body
+    }
+    if (type === 'getApi') {
+        ctx = {
+            request: {
+                body, url
+            }, header: {
+                'content-type': http === 'post' ? 'application/json' : 'text/plain; charset=utf-8'
+            }
         }
     }
     return ctx
