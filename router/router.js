@@ -259,7 +259,7 @@ module.exports = (router) => {
             const createCtx = {
                 request: {
                     body: {
-                        roleId: res, userId: ctx.request.body.id, isCurrentRole: index === 1 ? true : false
+                        roleId: res, userId: ctx.request.body.id, isCurrentRole: index === 0 ? true : false
                     }, url: '/userRole/create'
                 }
             }

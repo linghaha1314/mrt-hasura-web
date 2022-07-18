@@ -149,13 +149,14 @@ module.exports = (router) => {
         const data = await getApi(invertCtxData({
             approvalProcessId: ctx.request.body.approvalProcessId, workflowId: ctx.request.body.workflowId
         }, '/approvalSet/getProcessDetailByApprovalProcessId', 'post', 'getApi'))
+        // console.log('===>>???list', data)
         const list = [];
         (data.list || []).forEach(res => {
             res = deconstructionData(res)
             res.status = 11
             if (res['approvalDetail'].length > 0) {
                 res.status = res['approvalDetail'][0].status
-                res.remark= res['approvalDetail'][0].remark
+                res.remark = res['approvalDetail'][0].remark
             }
             list.push(res)
         })
