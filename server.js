@@ -49,7 +49,12 @@ app.use(async (ctx, next) => {
     //     ctx.set('content-type', mimeType); //设置返回类型
     //     ctx.body = file; //返回图片
     // }
-    if(ctx.getUserId){
+    if (reUrl.length > 0) {
+        console.log(`${ctx.method} ${ctx.url} redirect to ${reUrl} - ${rt}`);
+    } else {
+        console.log(`${ctx.method} ${ctx.url} - ${rt}`);
+    }
+    if (ctx.getUserId) {
         // 收集日志字段信息
         const body = {
             staffId: ctx.getUserId,
@@ -63,11 +68,6 @@ app.use(async (ctx, next) => {
             VALUES($1,$2,$3) returning *;
             `;
         pool.query(sql, valueList)
-    }
-    if (reUrl.length > 0) {
-        console.log(`${ctx.method} ${ctx.url} redirect to ${reUrl} - ${rt}`);
-    } else {
-        console.log(`${ctx.method} ${ctx.url} - ${rt}`);
     }
 });
 
