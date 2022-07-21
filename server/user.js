@@ -377,7 +377,14 @@ function DateToStr(date) {
     return year.toString() + ((month + 1) > 9 ? (month + 1) : "0" + (month + 1)).toString() + (day > 9 ? day : ("0" + day)).toString() + (hours > 9 ? hours : ("0" + hours)).toString() + (min > 9 ? min : ("0" + min)).toString() + (second > 9 ? second : ("0" + second)).toString();
 }
 
-//
+/**
+ * @name invertCtxData
+ * @desc 重新转换创建请求数据ctx
+ * @param body 请求时要传入的参数
+ * @param url  请求地址
+ * @param http 请求方式
+ * @param type 是getApi就传入'getApi',否则不传
+ * */
 function invertCtxData(body, url, http = 'post', type = null) {
     let ctx = {
         request: {

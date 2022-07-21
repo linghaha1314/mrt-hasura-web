@@ -716,7 +716,6 @@ module.exports = (router) => {
         const childData = data.list.filter(res => res.parentId);
         getMenuTree(parentData, childData); //如果存在父子关系，变成树状结构
         const list = [];
-        console.log(parentData);
         if (list) {
             ctx.body = {
                 list: parentData, success: true, msg: '查询成功！'

@@ -172,22 +172,50 @@ module.exports = (router) => {
     });
 
     //根据roleId获取当前可以审批的课程
-    router.get(`/process/getCourseByRoleId`, async (ctx, next) => {
+    router.post(`/process/getCourseByRoleId`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
+        ctx.request.body.status = Number(ctx.request.body.status)
+        const courseName = ctx.request.body.name !== undefined && ctx.request.body.name ? ctx.request.body.name : '';
+        delete ctx.request.body.name;
         const data = await getApi(ctx)
-        const list = [];
-        data.list.forEach(res => {
-            const obj = deconstructionData(res)
-            const approvalList = [];
-            res['approvalList'].forEach(rr => {
-                approvalList.push(deconstructionData(rr));
-            })
-            obj.approvalList = approvalList
-            list.push(obj)
-        })
+        let list = [];
+        let total = 0;
+        if (ctx.request.body.status === 11) {
+            list = data.toList
+            total = deconstructionData(data.toTotalData).total || 0
+        } else {
+            list = data.alreadyList
+            total = deconstructionData(data.alreadyTotalData).total || 0
+        }
+        for (const res of list) {
+            //根据对应的res.objectId获取对应的数据表数据
+            let objectData = {};
+            switch (ctx.request.body.typeCode) {
+                case 'course_approval': {
+                    const courseData = await getApi(invertCtxData({
+                        where: {
+                            id: {_eq: res.objectId}, name: {_like: '%' + courseName + '%'}
+                        }
+                    }, '/course/getCourseDetailAll', 'post', 'getApi'))
+                    const resultData = courseData.list[0];
+                    res.status = resultData.status ?? 11;
+                    if (resultData) {
+                        resultData.typeData = resultData.courseTypeList?.length > 0 ? resultData.courseTypeList[0] : null;
+                        resultData.columnId = resultData.courseColumnList?.length > 0 ? resultData.courseColumnList[0].columnId : null
+                        resultData.columnData = resultData.courseColumnList?.length > 0 ? resultData.courseColumnList[0].homeColumnData : null
+                        delete resultData.courseTypeList
+                        delete resultData.courseColumnList
+                        objectData = deconstructionData(resultData)
+                    }
+                    break;
+                }
+            }
+            res.objectData = objectData
+            res.objectName = objectData.name
+        }
         if (list) {
             ctx.body = {
-                list: list, total: deconstructionData(data['totalData']).total, success: true, msg: '查询成功！'
+                list, total, success: true, msg: '查询成功！'
             }
             return;
         }

@@ -57,9 +57,9 @@ app.use(async (ctx, next) => {
     if (ctx.getUserId) {
         // 收集日志字段信息
         const body = {
-            staffId: ctx.getUserId,
-            url: ctx.originalUrl,
-            result: ctx.response.body.msg
+            staffId: ctx.getUserId || null,
+            url: ctx.originalUrl || null,
+            result: ctx.response.body?.msg || null
         }
         const valueList = Object.values(body)
         const sql = `
