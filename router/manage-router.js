@@ -178,6 +178,7 @@ module.exports = (router) => {
         const courseName = ctx.request.body.name !== undefined && ctx.request.body.name ? ctx.request.body.name : '';
         delete ctx.request.body.name;
         const data = await getApi(ctx)
+        console.log('===>>???', data, ctx.request.body)
         let list = [];
         let total = 0;
         if (ctx.request.body.status === 11) {
@@ -198,7 +199,6 @@ module.exports = (router) => {
                         }
                     }, '/course/getCourseDetailAll', 'post', 'getApi'))
                     const resultData = courseData.list[0];
-                    res.status = resultData.status ?? 11;
                     if (resultData) {
                         resultData.typeData = resultData.courseTypeList?.length > 0 ? resultData.courseTypeList[0] : null;
                         resultData.columnId = resultData.courseColumnList?.length > 0 ? resultData.courseColumnList[0].columnId : null
