@@ -537,9 +537,10 @@ module.exports = (router) => {
         }
     });
 
-    //批量导入课程！
+    //批量导入课程！注意记录当前导入人员的staffId和角色Id
     router.post(`/courses/multiImport`, async (ctx) => {
-        const list = JSON.parse(JSON.stringify(ctx.request.body));
+        const list = JSON.parse(JSON.stringify(ctx.request.body.list));
+        const staff = ctx.request.body.staff;
         //先导入课程
         let courseCreateResult;
         let chapterCreateResult;
@@ -550,7 +551,7 @@ module.exports = (router) => {
             delete res.children;
             const createCourseCtx = {
                 request: {
-                    body: res, url: '/courses/createUpdate'
+                    body: {...res, ...staff}, url: '/courses/createUpdate'
                 }
             }
             courseCreateResult = await createUpdateCourses(createCourseCtx);
