@@ -125,10 +125,12 @@ module.exports = (router) => {
 
     //创建工作流
     router.post(`/workflow/createProcess`, async (ctx) => {
+        const tableName = ctx.request.body.tableName ? ctx.request.body.tableName : 'courses'
         //创建工作流;默认查询审批流程的list，根据流程id获取当前的
         const getApprovalListData = await getApi(invertCtxData({
             parentId: ctx.request.body.approvalProcessId
         }, '/approvalProcess/getApprovalListById', 'get', 'getApi'))
+        delete ctx.request.body.tableName
         const data = await create(invertCtxData({
             ...ctx.request.body, currentRoleId: getApprovalListData.list[0]['roleData']['roleId']
         }, '/workflowStart/create'))
@@ -138,7 +140,7 @@ module.exports = (router) => {
             status: 11,
             workflowId: data.rows[0]?.id || null,
             approvalProcessId: ctx.request.body.approvalProcessId
-        }, '/courses/updateById'))
+        }, `/${tableName}/updateById`))
         ctx.body = {
             list: changeCourseData, success: true, msg: '提交成功！'
         }
@@ -176,7 +178,9 @@ module.exports = (router) => {
         ctx.request.url = ctx.request.realUrl
         ctx.request.body.status = Number(ctx.request.body.status)
         const courseName = ctx.request.body.name !== undefined && ctx.request.body.name ? ctx.request.body.name : '';
+        const tableName = ctx.request.body.table !== undefined && ctx.request.body.table ? ctx.request.body.table : '';
         delete ctx.request.body.name;
+        delete ctx.request.body.table;
         const data = await getApi(ctx)
         console.log('===>>???', data, ctx.request.body)
         let list = [];
@@ -188,11 +192,14 @@ module.exports = (router) => {
             list = data.alreadyList
             total = deconstructionData(data.alreadyTotalData).total || 0
         }
+        console.log(list, 888)
         for (const res of list) {
             //根据对应的res.objectId获取对应的数据表数据
             let objectData = {};
+            console.log(list, 999)
             switch (ctx.request.body.typeCode) {
                 case 'course_approval': {
+
                     const courseData = await getApi(invertCtxData({
                         where: {
                             id: {_eq: res.objectId}, name: {_like: '%' + courseName + '%'}
@@ -209,9 +216,29 @@ module.exports = (router) => {
                     }
                     break;
                 }
+                case 'common_approval': {
+
+                    const messageData = await getApi(invertCtxData({
+                        where: {
+                            id: {_eq: res.objectId}, name: {_like: '%' + courseName + '%'}
+                        }
+                    }, `/${tableName}/getMessageDetailAll`, 'post', 'getApi'))
+
+                    const resultData = messageData.list[0];
+                    console.log(messageData, 777)
+                    if (resultData) {
+                        // resultData.typeData = resultData.messageTypeList?.length > 0 ? resultData.messageTypeList[0] : null;
+                        // resultData.columnId = resultData.messageColumnList?.length > 0 ? resultData.messageColumnList[0].columnId : null
+                        // resultData.columnData = resultData.messageColumnList?.length > 0 ? resultData.messageColumnList[0].homeColumnData : null
+                        // delete resultData.messageTypeList
+                        // delete resultData.messageColumnList
+                        objectData = resultData
+                    }
+                    break;
+                }
             }
             res.objectData = objectData
-            res.objectName = objectData.name
+            res.objectName = objectData?.name || ''
         }
         if (list) {
             ctx.body = {
@@ -226,7 +253,9 @@ module.exports = (router) => {
 
     //工作流审批
     router.post(`/process/agree`, async (ctx, next) => {
+        const tableName = ctx.request.body.tableName ? ctx.request.body.tableName : 'courses'
         ctx.request.url = ctx.request.realUrl
+        delete ctx.request.body.tableName
         //查询流程列表,获取下一级审批人roleId
         const getApprovalListData = await getApi(invertCtxData({
             parentId: ctx.request.body.approvalProcessId
@@ -262,7 +291,7 @@ module.exports = (router) => {
         if (isEnd) {
             await updateById(invertCtxData({
                 id: ctx.request.body.objectId, status
-            }, '/courses/updateById'))
+            }, `/${tableName}/updateById`))
         }
         if (true) {
             ctx.body = {

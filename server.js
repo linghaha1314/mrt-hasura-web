@@ -59,7 +59,7 @@ app.use(async (ctx, next) => {
         const body = {
             staffId: ctx.getUserId || null,
             url: ctx.originalUrl || null,
-            result: ctx.response.body?.msg || null
+            result: ctx.response?.body?.msg || '无'
         }
         const valueList = Object.values(body)
         const sql = `
