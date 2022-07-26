@@ -302,6 +302,13 @@ module.exports = (router) => {
             res.objectData = objectData
             res.objectName = objectData?.name || ''
         }
+        let arr = []
+        list.forEach(item => {
+            if (item.objectName !== '' ) {
+                arr.push(item)
+            }
+        })
+        list = arr
         if (list) {
             ctx.body = {
                 list, total, success: true, msg: '查询成功！'
