@@ -192,11 +192,9 @@ module.exports = (router) => {
             list = data.alreadyList
             total = deconstructionData(data.alreadyTotalData).total || 0
         }
-        console.log(list, 888)
         for (const res of list) {
             //根据对应的res.objectId获取对应的数据表数据
             let objectData = {};
-            console.log(list, 999)
             switch (ctx.request.body.typeCode) {
                 case 'course_approval': {
 
