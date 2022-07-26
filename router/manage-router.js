@@ -178,9 +178,9 @@ module.exports = (router) => {
         ctx.request.url = ctx.request.realUrl
         ctx.request.body.status = Number(ctx.request.body.status)
         const courseName = ctx.request.body.name !== undefined && ctx.request.body.name ? ctx.request.body.name : '';
-        const tableName = ctx.request.body.table !== undefined && ctx.request.body.table ? ctx.request.body.table : '';
+        // const tableName = ctx.request.body.table !== undefined && ctx.request.body.table ? ctx.request.body.table : '';
         delete ctx.request.body.name;
-        delete ctx.request.body.table;
+        // delete ctx.request.body.table;
         const data = await getApi(ctx)
         console.log('===>>???', data, ctx.request.body)
         let list = [];
@@ -222,16 +222,80 @@ module.exports = (router) => {
                         where: {
                             id: {_eq: res.objectId}, name: {_like: '%' + courseName + '%'}
                         }
-                    }, `/${tableName}/getMessageDetailAll`, 'post', 'getApi'))
+                    }, `/message/getMessageDetailAll`, 'post', 'getApi'))
 
                     const resultData = messageData.list[0];
-                    console.log(messageData, 777)
                     if (resultData) {
-                        // resultData.typeData = resultData.messageTypeList?.length > 0 ? resultData.messageTypeList[0] : null;
-                        // resultData.columnId = resultData.messageColumnList?.length > 0 ? resultData.messageColumnList[0].columnId : null
-                        // resultData.columnData = resultData.messageColumnList?.length > 0 ? resultData.messageColumnList[0].homeColumnData : null
-                        // delete resultData.messageTypeList
-                        // delete resultData.messageColumnList
+                        objectData = resultData
+                    }
+                    break;
+                }
+                case 'regulations': {
+
+                    const messageData = await getApi(invertCtxData({
+                        where: {
+                            id: {_eq: res.objectId}, name: {_like: '%' + courseName + '%'}
+                        }
+                    }, `/regulations/getMessageDetailAll`, 'post', 'getApi'))
+
+                    const resultData = messageData.list[0];
+                    if (resultData) {
+                        objectData = resultData
+                    }
+                    break;
+                }
+                case 'file': {
+
+                    const messageData = await getApi(invertCtxData({
+                        where: {
+                            id: {_eq: res.objectId}, name: {_like: '%' + courseName + '%'}
+                        }
+                    }, `/file/getMessageDetailAll`, 'post', 'getApi'))
+
+                    const resultData = messageData.list[0];
+                    if (resultData) {
+                        objectData = resultData
+                    }
+                    break;
+                }
+                case 'training': {
+
+                    const messageData = await getApi(invertCtxData({
+                        where: {
+                            id: {_eq: res.objectId}, name: {_like: '%' + courseName + '%'}
+                        }
+                    }, `/training/getMessageDetailAll`, 'post', 'getApi'))
+
+                    const resultData = messageData.list[0];
+                    if (resultData) {
+                        objectData = resultData
+                    }
+                    break;
+                }
+                case 'teacher_style': {
+
+                    const messageData = await getApi(invertCtxData({
+                        where: {
+                            id: {_eq: res.objectId}, name: {_like: '%' + courseName + '%'}
+                        }
+                    }, `/teacher_style/getMessageDetailAll`, 'post', 'getApi'))
+
+                    const resultData = messageData.list[0];
+                    if (resultData) {
+                        objectData = resultData
+                    }
+                    break;
+                }
+                case 'teaching': {
+
+                    const messageData = await getApi(invertCtxData({
+                        where: {
+                            id: {_eq: res.objectId}, name: {_like: '%' + courseName + '%'}
+                        }
+                    }, `/teaching/getMessageDetailAll`, 'post', 'getApi'))
+
+                    const resultData = messageData.list[0];
+                    if (resultData) {
                         objectData = resultData
                     }
                     break;
