@@ -182,7 +182,6 @@ module.exports = (router) => {
         delete ctx.request.body.name;
         // delete ctx.request.body.table;
         const data = await getApi(ctx)
-        console.log('===>>???', data, ctx.request.body)
         let list = [];
         let total = 0;
         if (ctx.request.body.status === 11) {

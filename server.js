@@ -54,21 +54,24 @@ app.use(async (ctx, next) => {
     } else {
         console.log(`${ctx.method} ${ctx.url} - ${rt}`);
     }
-    if (ctx.getUserId) {
-        // 收集日志字段信息
-        const body = {
-            staffId: ctx.getUserId || null,
-            url: ctx.originalUrl || null,
-            result: ctx.response?.body?.msg || '无'
-        }
-        const valueList = Object.values(body)
-        const sql = `
+    try {
+        if (ctx.getUserId) {
+            // 收集日志字段信息
+            const body = {
+                staffId: ctx.getUserId || null, url: ctx.originalUrl || null, result: ctx.response.body?.msg || null
+            }
+            const valueList = Object.values(body)
+            const sql = `
             insert
             into  kb_log(staff_id,url,result)
             VALUES($1,$2,$3) returning *;
             `;
-        pool.query(sql, valueList)
+            pool.query(sql, valueList)
+        }
+    } catch (e) {
+        console.error(e)
     }
+
 });
 
 //监听器
