@@ -739,7 +739,7 @@ module.exports = (router) => {
         })
         if (data) {
             ctx.body = {
-                list: list, success: true, msg: '查询成功！'
+                list: list, success: true, total: data.totalData.aggregateData.count, msg: '查询成功！'
             }
             return;
         }

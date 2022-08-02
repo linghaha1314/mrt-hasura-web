@@ -76,25 +76,23 @@ module.exports = (router) => {
         }
     });
 
-    router.get(`/approvalProcessSet/getDataListByPage`, async (ctx) => {
+    router.post(`/approvalProcessSet/getDataListByPage`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx);
         const list = [];
         data.list.forEach(res => {
-            const obj = {...res, ...res['roleData']}
-            delete obj['roleData']
-            list.push(obj)
-        })
-        const parentData = list.filter(res => !res.parentId);
-        const childData = list.filter(res => res.parentId);
-        getMenuTree(parentData, childData);
-        const resultList = [];
-        parentData.forEach(res => {
-            resultList.push(deconstructionData(res));
+            const children = [];
+            if (res.children && res.children.length > 0) {
+                res.children.forEach(rr => {
+                    children.push(deconstructionData(rr));
+                })
+            }
+            res.children = children;
+            list.push(deconstructionData(res))
         })
         if (true) {
             ctx.body = {
-                list: resultList, total: data['totalData']['aggregate'].count, success: true, msg: '提交成功！'
+                list, total: data['totalData']['aggregate'].count, success: true, msg: '提交成功！'
             }
             return;
         }
@@ -303,7 +301,7 @@ module.exports = (router) => {
         }
         let arr = []
         list.forEach(item => {
-            if (item.objectName !== '' ) {
+            if (item.objectName !== '') {
                 arr.push(item)
             }
         })
