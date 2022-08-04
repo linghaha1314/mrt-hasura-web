@@ -306,6 +306,7 @@ module.exports = (router) => {
             }
         })
         list = arr
+        total = list.length
         if (list) {
             ctx.body = {
                 list, total, success: true, msg: '查询成功！'
