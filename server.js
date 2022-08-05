@@ -86,8 +86,11 @@ app.use(async (ctx, next) => {
 app.use(function (ctx, next) {
     return next().catch((err) => {
         ctx.status = err.status || 500;
-        console.error('===>>???', err);
-        ctx.body = err.message;
+        ctx.body = {
+            status: err.status,
+            success: false,
+            msg: err.message
+        }
         ctx.app.emit("error", err, ctx);
         //错误要返回具体的错误数据
     });
@@ -137,6 +140,9 @@ app.use(async (ctx, next) => {
                 break;
             case 'getListByPage':
                 ctx.request.url = '/getListByPage'
+                break;
+            case 'getListByPageNotTree':
+                ctx.request.url = '/getListByPageNotTree'
                 break;
             case 'getDataById':
                 ctx.request.url = '/getDataById'

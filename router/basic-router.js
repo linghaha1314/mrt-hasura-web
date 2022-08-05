@@ -15,7 +15,8 @@ const {
     dictionaryDataByTypeCode,
     validLogin,
     getApi,
-    deconstructionData, DateToStr
+    deconstructionData,
+    DateToStr
 } = require("../server/user");
 const request = require("request");
 const CryptoJS = require("crypto-js");
@@ -84,6 +85,13 @@ module.exports = (router) => {
         getMenuTree(parentData, childData); //如果存在父子关系，变成树状结构
         ctx.body = {
             list: parentData, total: data.total, success: true, msg: '查询成功！'
+        }
+    });
+    router.get(`/getListByPageNotTree`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl.replace(/NotTree/, '');
+        const data = await getListByPage(ctx, next);
+        ctx.body = {
+            list: data.list, total: data.total, success: true, msg: '查询成功！'
         }
     });
 
@@ -260,7 +268,7 @@ module.exports = (router) => {
             ...result, token: jsonwebtoken.sign({
                 data: {
                     id: result.id, name: ctx.request.body.username
-                }, exp: Math.floor(Date.now() / 1000) + (60 * 60 * 10), // 60 seconds * 60 minutes = 1 hour
+                }, exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7), // 60 seconds * 60 minutes = 1 hour
             }, 'kbds random secret'),
         } : result;
     });
