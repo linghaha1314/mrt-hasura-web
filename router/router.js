@@ -9,6 +9,7 @@ const {
     deconstructionData,
     getListByPage,
     invertCtxData,
+    formatTime,
 } = require('../server/user');
 const pool = require("../utils/pool");
 
@@ -863,6 +864,25 @@ module.exports = (router) => {
             } else {
                 await updateById(ctx, next);
             }
+        }
+        //记录今日学习时间；
+        //如果不存在今天，且staffId和当前chapterId一样的记录；创建一条数据，并存入今天的年月日！
+        // 如果已经存在staffId和当前chapterId;而且时间是今天
+        const selectData = await getListByPage(invertCtxData({
+            staffId: ctx.request.body['staffId'], chapterId: ctx.request.body['chapterId'], date: formatTime('')
+        }, '/todayStudy/getListByPage', 'get'));
+        if (selectData && selectData.list.length > 0) {
+            await updateById(invertCtxData({
+                id: selectData.list[0].id, studyTime: selectData.list[0].studyTime + 1
+            }, '/todayStudy/create'));
+        } else {
+            await create(invertCtxData({
+                staffId: ctx.request.body['staffId'],
+                chapterId: ctx.request.body['chapterId'],
+                courseId: ctx.request.body['courseId'],
+                date: formatTime(''),
+                studyTime: 1
+            }, '/todayStudy/create'));
         }
         if (data) {
             ctx.body = {

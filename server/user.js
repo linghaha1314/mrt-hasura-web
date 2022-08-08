@@ -366,6 +366,51 @@ function deconstructionData(data) {
     return result
 }
 
+//生成年月日
+function formatTime(date, format = 'YY-MM-DD') {
+    if (typeof date === 'string') {
+        date = date.replace(/\s+/, 'T');  //Ios
+    }
+    date = date ? (typeof date === 'string' ? new Date(date) : date) : new Date();
+    const dateObj = {};
+    dateObj.YY = date.getFullYear();
+    dateObj.MM = date.getMonth() + 1;
+    dateObj.DD = date.getDate();
+    dateObj.hh = date.getHours();
+    dateObj.mm = date.getMinutes();
+    dateObj.ss = date.getSeconds();
+    const arr = aryJoinAry(format.match(/[a-zA-Z]{2}/g), format.match(/[^a-zA-Z]/g) || []);
+    let result = '';
+    arr.forEach(res => {
+        result += /[a-zA-Z]/g.test(res) ? addZero(dateObj[res]) : res;
+    });
+    return result;
+}
+
+function addZero(num) {
+    if (num > 9) {
+        return num;
+    } else {
+        return `0${num}`;
+    }
+}
+
+function aryJoinAry(ary, ary2) {
+    const itemAry = [];
+    let minLength;
+    if (ary.length > ary2.length) {
+        minLength = ary2.length;
+    } else {
+        minLength = ary.length;
+    }
+    const longAry = arguments[0].length > arguments[1].length ? arguments[0] : arguments[1];
+    for (let i = 0; i < minLength; i++) {
+        itemAry.push(ary[i]);
+        itemAry.push(ary2[i]);
+    }
+    return itemAry.concat(longAry.slice(minLength));
+};
+
 //秒转化成时分秒的结构-生成时间随机数
 function DateToStr(date) {
     const year = date.getFullYear();//年
@@ -416,6 +461,7 @@ module.exports = {
     getList,
     getListByPage,
     getMenuTree,
+    formatTime,
     changeDataTree,
     invertCtxData,
     create,
