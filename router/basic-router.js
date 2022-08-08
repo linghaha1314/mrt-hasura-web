@@ -16,7 +16,7 @@ const {
     validLogin,
     getApi,
     deconstructionData,
-    DateToStr
+    DateToStr, invertCtxData
 } = require("../server/user");
 const request = require("request");
 const CryptoJS = require("crypto-js");
@@ -274,12 +274,45 @@ module.exports = (router) => {
     });
 
     router.get('/getUserInfo', async (ctx, next) => {
+        if (ctx.getUserId === undefined && ctx.session.user === undefined) {
+            ctx.body = {
+                Message: '未登录', status: 202, success: false, data: null
+            }
+            return;
+        }
+        let token = null;
+        if (ctx.getUserId === undefined && ctx.session.user) {
+            const casUser = ctx.session.user;
+            const old = await getListByPage(invertCtxData({username: casUser.username}, '/user/getListByPage', 'get'));
+            if (old.total == 0) {
+                const result = await create(invertCtxData({
+                    username: casUser.username,
+                    password: CryptoJS.AES.encrypt(casUser.username, 'kb12315').toString(),
+                    name: casUser.staffName,
+                    jobNum: casUser.serialNo,
+                    majorId: null,
+                    sectionId: null,
+                    mobile: casUser.mobile
+                }, '/user/createUser', 'post', 'getApi'));
+                ctx.request.query = {id: result.rows[0].id};
+            } else {
+                ctx.request.query = {id: old.list[0].id};
+            }
+            token = jsonwebtoken.sign({
+                data: {
+                    id: ctx.request.query.id, name: casUser.username
+                }, exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7), // 60 seconds * 60 minutes = 1 hour
+            }, 'kbds random secret')
+        }
+        if (ctx.request.query.id === undefined) {
+            ctx.request.query = {id: ctx.getUserId};
+        }
         const data = await getApi(ctx, next);
         const rr = deconstructionData(data.data);
         rr.currentRole = rr.currentRole[0]
         //获取当前登录用户的个人信息
         ctx.body = {
-            Message: '', status: 200, success: true, data: rr
+            Message: '', status: 200, success: true, data: rr, token: token
         }
     });
 
