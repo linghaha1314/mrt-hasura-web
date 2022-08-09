@@ -49,7 +49,7 @@ module.exports = (function () {
     CasClient.prototype.validateTgc = async function (ctx, options, next) {
         const tgc = ctx.cookies.get('TGC');
         const ticket = ctx.request.query['ticket'];
-        if ((!isEmpty(tgc) || isEmpty(ticket)) && !ctx.session.validate) {
+        if (!isEmpty(tgc) && !ctx.session.validate) {
             ctx.redirect(`${options.cas_url}${options.cas_login}?service=${options.service_url}`);
         }
     };
