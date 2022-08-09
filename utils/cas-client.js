@@ -22,9 +22,14 @@ module.exports = (function () {
     CasClient.prototype.auth = async function (ctx, next) {
         const options = CasClient.prototype.options;
         const tgc = ctx.cookies.get('TGC');
-        if (isEmpty(tgc)) {
+        if (isEmpty(ctx.session.user) && isEmpty(tgc)) {
             ctx.session.validate = false;
-            await CasClient.prototype.login(ctx, options, next);
+            const ticket = ctx.request.query['ticket'];
+            if (isEmpty(ticket)) {
+                await CasClient.prototype.login(ctx, options, next);
+            } else {
+                await CasClient.prototype.validate(ctx, options, next);
+            }
         } else {
             if (ctx.session.user == null) {
                 ctx.session.validate = false;
@@ -43,7 +48,8 @@ module.exports = (function () {
 
     CasClient.prototype.validateTgc = async function (ctx, options, next) {
         const tgc = ctx.cookies.get('TGC');
-        if (!isEmpty(tgc) && !ctx.session.validate) {
+        const ticket = ctx.request.query['ticket'];
+        if ((!isEmpty(tgc) || isEmpty(ticket)) && !ctx.session.validate) {
             ctx.redirect(`${options.cas_url}${options.cas_login}?service=${options.service_url}`);
         }
     };
