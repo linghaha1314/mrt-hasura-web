@@ -23,8 +23,8 @@ app.use(session(app));
 // 添加单点登录
 const CasClient = require('./utils/cas-client');
 const cas = new CasClient({
-    cas_url: 'http://localhost:8080',
-    service_url: 'http://localhost:3001',
+    cas_url: 'http://192.168.11.21:8080',
+    service_url: 'http://192.168.11.21:3001',
     cas_login: '/login',
     cas_logout: '/logout',
     cas_validate: '/serviceValidate'
