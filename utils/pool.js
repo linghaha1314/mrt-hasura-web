@@ -6,8 +6,6 @@
 //     password: '1234',
 //     port: 51436,
 // });
-// // the pool will emit an error on behalf of any idle clients
-// // it contains if a backend error or network partition happens
 // pool.on('error', (err, client) => {
 //     console.error('Unexpected error on idle client', err)
 //     process.exit(-1)
@@ -24,8 +22,6 @@ const {poolObj} = require('../config.js')
 //     port: 5433,
 // });
 const pool = new Pool(poolObj)
-// the pool will emit an error on behalf of any idle clients
-// it contains if a backend error or network partition happens
 pool.on('error', (err, client) => {
     console.error('Unexpected error on idle client', err)
     process.exit(-1)

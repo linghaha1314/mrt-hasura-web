@@ -15,8 +15,6 @@ const pool = require("./utils/pool");
 //编译后静态路径
 const staticPath = './frontend';
 //crud服务
-// const refUrl = "http://zyk.mrtcloud.com:8888";
-// const refUrl = "http://127.0.0.1:8080";
 const {refUrl} = require('./config')
 app.keys = ['kbds random secret'];
 app.use(session(app));
@@ -31,6 +29,7 @@ const cas = new CasClient({
     cas_validate: '/serviceValidate'
 });
 app.use(cas.auth);
+
 //应用静态资源
 app.use(static(path.join(__dirname, staticPath)));
 //数据处理
@@ -88,9 +87,7 @@ app.use(function (ctx, next) {
     return next().catch((err) => {
         ctx.status = err.status || 500;
         ctx.body = {
-            status: err.status,
-            success: false,
-            msg: err.message
+            status: err.status, success: false, msg: err.message
         }
         ctx.app.emit("error", err, ctx);
         //错误要返回具体的错误数据
@@ -99,7 +96,7 @@ app.use(function (ctx, next) {
 
 
 // 不过滤的请求路径
-const ignoreUrl = [/\/public/, /\/login/, /\/attachs/, /\/chapters.*$/, /\/ps.*$/, /\/api.*$/, /\/swiper\/getListByPage/, /\/getListByPage/, /\/getByTypeCode/, /\/getUserInfo/, /\/getBeforeNext/, /\/courses\/getDataById/, /\/roleColumn\/getColumnByRoleId/, /\/user\/updateUserById/, /\/leave_msg\/create/, /\/comment.*$/, /\/courseType.*$/, /\/course.*$/, /\/homeColumns.*$/, /\/msgPush.*$/]; // /user/updateUserById
+const ignoreUrl = require('./ignore-path')
 // Middleware below this line is only reached if JWT token is valid
 app.use(jwt({
     secret: 'kbds random secret'
