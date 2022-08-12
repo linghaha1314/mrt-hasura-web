@@ -755,7 +755,8 @@ module.exports = (router) => {
             ignoreChars: '0o1i', // 验证码字符中排除 0o1i
             color: true, // 验证码是否有彩色
             noise: 1, //干扰线
-            background: '#666' // 背景颜色
+            background: '#666', // 背景颜色
+            charPreset: '1234567890'
         })
         ctx.body = {
             data: c.data, text: c.text, success: true, msg: '查询成功！'
