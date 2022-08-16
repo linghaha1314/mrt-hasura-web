@@ -19,16 +19,21 @@ const {refUrl} = require('./config')
 app.keys = ['kbds random secret'];
 app.use(session(app));
 // 添加单点登录
-const CasClient = require('./utils/cas-client');
-const cas = new CasClient({
-    cas_url: 'http://localhost:8080',
-    // cas_url: 'http://192.168.11.21:8080',
-    service_url: 'http://localhost:3001',
-    cas_login: '/login',
-    cas_logout: '/logout',
-    cas_validate: '/serviceValidate'
-});
-app.use(cas.auth);
+try {
+    const CasClient = require('./utils/cas-client');
+    const cas = new CasClient({
+        cas_url: 'http://localhost:8080',
+        // cas_url: 'http://192.168.11.21:8080',
+        service_url: 'http://localhost:3001',
+        cas_login: '/login',
+        cas_logout: '/logout',
+        cas_validate: '/serviceValidate'
+    });
+    app.use(cas.auth);
+} catch (e) {
+console.error(e);
+}
+
 
 //应用静态资源
 app.use(static(path.join(__dirname, staticPath)));
@@ -97,6 +102,7 @@ app.use(function (ctx, next) {
 
 // 不过滤的请求路径
 const ignoreUrl = require('./ignore-path')
+const CasClient = require("./utils/cas-client");
 // Middleware below this line is only reached if JWT token is valid
 app.use(jwt({
     secret: 'kbds random secret'
@@ -174,4 +180,4 @@ app
 //启动端口
 app.listen(3011);
 
-console.log(`listening on port 3001, http://localhost:3011`);
+console.log(`listening on port 3011, http://localhost:3011`);

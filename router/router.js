@@ -929,12 +929,10 @@ module.exports = (router) => {
         const studyStaffNumber = (await getApi(studyCtx)).studyStaffNumber.total.count;
         const data = await getApi(ctx, next);
         const result = data.data[0];
-        // result.typeName = result.courseType?.name
-        // result.studyStaffNumber = studyStaffNumber
-        // delete result.courseType
+        const classData = result?.courseClassData.length > 0 ? result.courseClassData[0].courseTypeData : {};
         const rr = deconstructionData(result);
         ctx.body = {
-            data: rr, total: data.total, success: true, msg: '查询成功！'
+            data: {...rr, ...classData}, total: data.total, success: true, msg: '查询成功！'
         }
     });
 

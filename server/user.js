@@ -352,6 +352,9 @@ function stringToNull(val) {
 
 //解构含有xxxData的数据
 function deconstructionData(data) {
+    if (!data) {
+        return;
+    }
     const keys = Object.keys(data);
     let result = {};
     keys.forEach(res => {
