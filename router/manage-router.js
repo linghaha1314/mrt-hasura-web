@@ -12,6 +12,20 @@ const {
 } = require("../server/user");
 module.exports = (router) => {
 
+    router.post(`/recommend/createUpdate`, async (ctx) => {
+        const oldList=(await getApi(invertCtxData({where:{is_recommend:{_eq:true}}},'/courses/getDataListByPage','post','getApi'))).list || []
+        const newList=ctx.request.body.list || []
+        for (const res of oldList) {
+            await updateById(invertCtxData({id:res.id,isRecommend: false},'/courses/updateById','post'))
+        }
+        for (const res of newList) {
+            await updateById(invertCtxData({id:res,isRecommend: true},'/courses/updateById','post'))
+        }
+        ctx.body = {
+            success: true, msg: '设置成功！'
+        }
+    });
+
     router.post(`/courses/deleteAllById`, async (ctx, next) => {
         await deleteById(invertCtxData({courseId: ctx.request.body.id}, '/courseClass/deleteById'))
         await deleteById(invertCtxData({courseId: ctx.request.body.id}, '/courseColumn/deleteById'))
