@@ -417,6 +417,17 @@ module.exports = (router) => {
             success: false, msg: '提交失败！'
         }
     });
+
+    router.post('/chapter/getChapterById', async (ctx) => {
+        const data = await getApi(ctx)
+        // const path = data.data[0].path.indexOf('http') > -1 ? data.data[0].path : ('http://117.159.24.46:3001/' + data.data[0].path)
+        const path = 'http://117.159.24.46:3001/attachs/3.1（吕雁）研究生开学第一课——喝彩奥运，志高行远，拼搏向未来2022.2.26-20220810100420.pptx'
+        const result = 'http://localhost:7001/viewVideo?url=' + (encodeURIComponent(Buffer.from(path).toString('base64'))) + '&time=4'
+        console.log(result)
+        ctx.body = {
+            data, success: true, msg: '提交成功！'
+        }
+    })
 }
 
 
