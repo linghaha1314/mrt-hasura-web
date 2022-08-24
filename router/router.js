@@ -403,37 +403,52 @@ module.exports = (router) => {
     });
 
     router.post(`/courseVerify/update`, async (ctx, next) => {
-        const deleteCtx = {
-            request: {
-                body: {
-                    courseId: ctx.request.body.courseId
-                }, url: '/courseVerify/deleteById'
-            }
+        const verifyBeforeData = await getListByPage(invertCtxData({chapterId: ctx.request.body.chapterId}, '/courseVerify/getListByPage', 'get'))
+        await deleteById(invertCtxData({chapterId: ctx.request.body.chapterId}, '/courseVerify/deleteById'));
+        for (const rr of (verifyBeforeData.list || [])) {
+            await deleteById(invertCtxData({id: rr.questionId}, '/questions/deleteById'));
         }
-        await deleteById(deleteCtx, next);
-        let sum = 0;
         for (const res of ctx.request.body['verifyList']) {
-            const newCtx = {
-                request: {
-                    body: {
-                        time: res.time, typeId: res.typeId, courseId: ctx.request.body.courseId
-                    }, url: '/courseVerify/create'
+            //先存题目获取对应的questionId,然后存储弹窗
+            if (res.typeCode === 'byChapter' && res.examData) {
+                if (res.examData.id) {
+                    await deleteById(invertCtxData({id: res.id}, '/questions/deleteById'));
                 }
+                const questionData = await create(invertCtxData({
+                    title: res.examData.title || '',
+                    options: JSON.stringify(res.examData.options || ''),
+                    typeCode: res.examData.typeCode || '',
+                    rightAnswer: res.examData.rightAnswer || ''
+                }, '/questions/create'));
+                res.questionId = questionData.rows[0].id;
             }
-            const data = await create(newCtx, next);
-            console.log(data)
-            sum += data.rowCount
-        }
-        if (sum === ctx.request.body['verifyList'].length) {
-            ctx.body = {
-                data: sum, success: true, msg: '设置成功！'
-            }
-            return;
+            const verifyCreateData = await create(invertCtxData({
+                time: res.time,
+                typeId: res.typeId,
+                chapterId: ctx.request.body.chapterId,
+                questionId: res.questionId || null
+            }, '/courseVerify/create'))
+            console.log('verify--', verifyCreateData);
         }
         ctx.body = {
-            success: false, msg: '失败！'
+            success: true, msg: '设置成功！'
         }
     });
+
+    router.post('/verify/getListByChapterId', async (ctx, next) => {
+        const data = await getApi(invertCtxData({chapterId: ctx.request.body.chapterId}, '/verify/getListByChapterId', 'post', 'getApi'))
+        console.log(data.list);
+        data.list.forEach(rr => {
+            if (rr.examData) {
+                rr.examData.options = JSON.parse(rr.examData.options)
+            }
+            rr.typeCode = rr.typeData?.typeCode
+            delete rr.typeData
+        })
+        ctx.body = {
+            list: data.list, success: true, msg: '查询成功！'
+        }
+    })
 
     router.post(`/courseFiles/update`, async (ctx, next) => {
         const deleteCtx = {
@@ -929,7 +944,7 @@ module.exports = (router) => {
         const studyStaffNumber = (await getApi(studyCtx)).studyStaffNumber.total.count;
         const data = await getApi(ctx, next);
         const result = data.data[0];
-        const classData = result?.courseClassData.length > 0 ? result.courseClassData[0].courseTypeData : {};
+        const classData = result?.courseClassData?.length > 0 ? result.courseClassData[0].courseTypeData : {};
         const rr = deconstructionData(result);
         ctx.body = {
             data: {...rr, ...classData}, total: data.total, success: true, msg: '查询成功！'

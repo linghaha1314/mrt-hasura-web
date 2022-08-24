@@ -388,6 +388,11 @@ function formatTime(date, format = 'YY-MM-DD') {
     return result;
 }
 
+function timeToDay(date = new Date(), day = 30) {
+    const time = date.getTime()
+    return formatTime(new Date(time + 30 * 24 * 60 * 60 * 1000))
+}
+
 function addZero(num) {
     if (num > 9) {
         return num;
@@ -463,6 +468,7 @@ module.exports = {
     getListByPage,
     getMenuTree,
     formatTime,
+    timeToDay,
     changeDataTree,
     invertCtxData,
     create,

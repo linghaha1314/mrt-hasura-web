@@ -8,18 +8,20 @@ const {
     create,
     getApi,
     deconstructionData,
-    getMenuTree
+    getMenuTree,
+    formatTime,
+    timeToDay
 } = require("../server/user");
 module.exports = (router) => {
 
     router.post(`/recommend/createUpdate`, async (ctx) => {
-        const oldList=(await getApi(invertCtxData({where:{is_recommend:{_eq:true}}},'/courses/getDataListByPage','post','getApi'))).list || []
-        const newList=ctx.request.body.list || []
+        const oldList = (await getApi(invertCtxData({where: {is_recommend: {_eq: true}}}, '/courses/getDataListByPage', 'post', 'getApi'))).list || []
+        const newList = ctx.request.body.list || []
         for (const res of oldList) {
-            await updateById(invertCtxData({id:res.id,isRecommend: false},'/courses/updateById','post'))
+            await updateById(invertCtxData({id: res.id, isRecommend: false}, '/courses/updateById', 'post'))
         }
         for (const res of newList) {
-            await updateById(invertCtxData({id:res,isRecommend: true},'/courses/updateById','post'))
+            await updateById(invertCtxData({id: res, isRecommend: true}, '/courses/updateById', 'post'))
         }
         ctx.body = {
             success: true, msg: '设置成功！'
@@ -116,43 +118,49 @@ module.exports = (router) => {
     });
 
     router.post(`/approvalProcess/delete`, async (ctx) => {
-        const deleteCtx = {
-            request: {
-                body: {id: ctx.request.body.id}, url: '/approvalProcessSet/deleteById'
-            }
-        }
-        const data1 = await deleteById(deleteCtx);
-        deleteCtx.request.body = {parentId: ctx.request.body.id};
-        const data2 = await deleteById(deleteCtx);
-        if (true) {
-            ctx.body = {
-                list: data2, success: true, msg: '提交成功！'
-            }
-            return;
-        }
+        //先删除子元素->再删除父元素
+        const data1 = await deleteById(invertCtxData({
+            parentId: ctx.request.body.id
+        }, '/approvalProcessSet/deleteById'));
+        const data2 = await deleteById(invertCtxData({
+            id: ctx.request.body.id
+        }, '/approvalProcessSet/deleteById'));
         ctx.body = {
-            success: false, msg: '提交失败！'
+            list: [data1, data2], success: true, msg: '提交成功！'
         }
     });
 
     //创建工作流
     router.post(`/workflow/createProcess`, async (ctx) => {
         const tableName = ctx.request.body.tableName ? ctx.request.body.tableName : 'courses'
+        const typeCode = ctx.request.body.typeCode
+        delete ctx.request.body.typeCode
         //创建工作流;默认查询审批流程的list，根据流程id获取当前的
         const getApprovalListData = await getApi(invertCtxData({
             parentId: ctx.request.body.approvalProcessId
         }, '/approvalProcess/getApprovalListById', 'get', 'getApi'))
         delete ctx.request.body.tableName
+        let changeCourseData = {}
         const data = await create(invertCtxData({
             ...ctx.request.body, currentRoleId: getApprovalListData.list[0]['roleData']['roleId']
         }, '/workflowStart/create'))
-        //设置课程的状态
-        const changeCourseData = await updateById(invertCtxData({
-            id: ctx.request.body.objectId,
-            status: 11,
-            workflowId: data.rows[0]?.id || null,
-            approvalProcessId: ctx.request.body.approvalProcessId
-        }, `/${tableName}/updateById`))
+        if (typeCode === 'home_recommend') {
+            //首页课程推荐审批流，-1----不是推荐课程,0---驳回，1---申请同意
+            changeCourseData = await updateById(invertCtxData({
+                id: ctx.request.body.objectId,
+                recommendStatus: 11,
+                recommendWorkflowId: data.rows[0]?.id || null,
+                recommendApprovalProcessId: ctx.request.body.approvalProcessId
+            }, `/${tableName}/updateById`))
+        } else {
+            //设置课程的状态
+            changeCourseData = await updateById(invertCtxData({
+                id: ctx.request.body.objectId,
+                status: 11,
+                workflowId: data.rows[0]?.id || null,
+                approvalProcessId: ctx.request.body.approvalProcessId
+            }, `/${tableName}/updateById`))
+        }
         ctx.body = {
             list: changeCourseData, success: true, msg: '提交成功！'
         }
@@ -163,7 +171,6 @@ module.exports = (router) => {
         const data = await getApi(invertCtxData({
             approvalProcessId: ctx.request.body.approvalProcessId, workflowId: ctx.request.body.workflowId
         }, '/approvalSet/getProcessDetailByApprovalProcessId', 'post', 'getApi'))
-        // console.log('===>>???list', data)
         const list = [];
         (data.list || []).forEach(res => {
             res = deconstructionData(res)
@@ -194,6 +201,7 @@ module.exports = (router) => {
         delete ctx.request.body.name;
         // delete ctx.request.body.table;
         const data = await getApi(ctx)
+        console.log('data', data);
         let list = [];
         let total = 0;
         if (ctx.request.body.status === 11) {
@@ -208,7 +216,6 @@ module.exports = (router) => {
             let objectData = {};
             switch (ctx.request.body.typeCode) {
                 case 'course_approval': {
-
                     const courseData = await getApi(invertCtxData({
                         where: {
                             id: {_eq: res.objectId}, name: {_like: '%' + courseName + '%'}
@@ -296,7 +303,6 @@ module.exports = (router) => {
                     break;
                 }
                 case 'teaching': {
-
                     const messageData = await getApi(invertCtxData({
                         where: {
                             id: {_eq: res.objectId}, name: {_like: '%' + courseName + '%'}
@@ -306,6 +312,23 @@ module.exports = (router) => {
                     const resultData = messageData.list[0];
                     if (resultData) {
                         objectData = resultData
+                    }
+                    break;
+                }
+                case 'home_recommend': {
+                    const courseData = await getApi(invertCtxData({
+                        where: {
+                            id: {_eq: res.objectId}, name: {_like: '%' + courseName + '%'}
+                        }
+                    }, '/course/getCourseDetailAll', 'post', 'getApi'))
+                    const resultData = courseData.list[0];
+                    if (resultData) {
+                        resultData.typeData = resultData.courseTypeList?.length > 0 ? resultData.courseTypeList[0] : null;
+                        resultData.columnId = resultData.courseColumnList?.length > 0 ? resultData.courseColumnList[0].columnId : null
+                        resultData.columnData = resultData.courseColumnList?.length > 0 ? resultData.courseColumnList[0].homeColumnData : null
+                        delete resultData.courseTypeList
+                        delete resultData.courseColumnList
+                        objectData = deconstructionData(resultData)
                     }
                     break;
                 }
@@ -335,6 +358,8 @@ module.exports = (router) => {
     //工作流审批
     router.post(`/process/agree`, async (ctx, next) => {
         const tableName = ctx.request.body.tableName ? ctx.request.body.tableName : 'courses'
+        const typeCode = ctx.request.body.typeCode
+        delete ctx.request.body.typeCode
         ctx.request.url = ctx.request.realUrl
         delete ctx.request.body.tableName
         //查询流程列表,获取下一级审批人roleId
@@ -370,9 +395,17 @@ module.exports = (router) => {
 
         //改变课程的状态
         if (isEnd) {
-            await updateById(invertCtxData({
-                id: ctx.request.body.objectId, status
-            }, `/${tableName}/updateById`))
+            if (typeCode === 'home_recommend') {
+                console.log('==>>??home_recommend')
+                await updateById(invertCtxData({
+                    id: ctx.request.body.objectId, recommendStatus: status, recommendDeadline: timeToDay()
+                }, `/${tableName}/updateById`))
+                //还要设置一个时间
+            } else {
+                await updateById(invertCtxData({
+                    id: ctx.request.body.objectId, status
+                }, `/${tableName}/updateById`))
+            }
         }
         if (true) {
             ctx.body = {
