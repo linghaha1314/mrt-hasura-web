@@ -4,6 +4,7 @@ node_modules
 hasura-dist.*
 hasura-dist
 attachs
+frontend
 
 # local env files
 .env.local
