@@ -12,6 +12,8 @@ const {
     formatTime,
 } = require('../server/user');
 const pool = require("../utils/pool");
+const request = require("request-promise");
+const {refUrl} = require("../config");
 
 // const {default: xlsx} = require("node-xlsx");
 async function createUpdateCourses(ctx, next = {}) {
@@ -400,6 +402,16 @@ module.exports = (router) => {
         ctx.body = {
             success: false, msg: '失败！'
         }
+    });
+
+    router.get(`/convertVideo`, async (ctx, next) => {
+        let url = encodeURIComponent(Buffer.from(ctx.query.url).toString('base64'));
+        url = encodeURIComponent(Buffer.from('/attachs/3.1（吕雁）研究生开学第一课——喝彩奥运，志高行远，拼搏向未来2022.2.26-20220810100420.pptx').toString('base64'));
+        ctx.body = await request({
+            method: ctx.method,
+            url: `http://127.0.0.1:7001/viewVideo?url=${url}&time=${ctx.query.time}`,
+            json: true
+        });
     });
 
     router.post(`/courseVerify/update`, async (ctx, next) => {
