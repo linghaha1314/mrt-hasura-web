@@ -408,9 +408,7 @@ module.exports = (router) => {
         let url = encodeURIComponent(Buffer.from(ctx.query.url).toString('base64'));
         url = encodeURIComponent(Buffer.from('/attachs/3.1（吕雁）研究生开学第一课——喝彩奥运，志高行远，拼搏向未来2022.2.26-20220810100420.pptx').toString('base64'));
         ctx.body = await request({
-            method: ctx.method,
-            url: `http://127.0.0.1:7001/viewVideo?url=${url}&time=${ctx.query.time}`,
-            json: true
+            method: ctx.method, url: `http://127.0.0.1:7001/viewVideo?url=${url}&time=${ctx.query.time}`, json: true
         });
     });
 
@@ -725,6 +723,7 @@ module.exports = (router) => {
         (data.list || []).forEach(res => {
             const obj = deconstructionData(res);
             obj.score = obj.score ? Number((obj.score * 2).toFixed(1)) : 0   //转化成十分制
+            obj.studyTime = Math.floor(obj.studyTime / 60)
             list.push(obj);
         })
         if (list) {

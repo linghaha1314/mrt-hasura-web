@@ -416,6 +416,32 @@ module.exports = (router) => {
             success: false, msg: '提交失败！'
         }
     });
+
+    router.get('/staff/getStatistic', async (ctx) => {
+        const result = await getApi(ctx)
+        const byCredits = []
+        const byStudyTime = [];
+        result.byCredits.forEach(r => {
+            byCredits.push(deconstructionData(r))
+        })
+        result.byStudyTime.forEach(r => {
+            byStudyTime.push(deconstructionData(r))
+        })
+        ctx.body = {
+            byCredits, byStudyTime, success: true, msg: '查询成功！'
+        }
+    })
+    router.get('/section/getSectionStatistic', async (ctx) => {
+        const result = await getApi(ctx)
+        const list = []
+        result.list.forEach(res => {
+            const obj = {...res, studyTime: 12, credits: 5, courseNum: 12, staffNum: 24}
+            list.push(obj)
+        })
+        ctx.body = {
+            list, success: true, msg: '查询成功！'
+        }
+    })
 }
 
 
