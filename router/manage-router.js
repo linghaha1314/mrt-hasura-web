@@ -431,12 +431,37 @@ module.exports = (router) => {
             byCredits, byStudyTime, success: true, msg: '查询成功！'
         }
     })
+
     router.get('/section/getSectionStatistic', async (ctx) => {
         const result = await getApi(ctx)
         const list = []
         result.list.forEach(res => {
             const obj = {...res, studyTime: 12, credits: 5, courseNum: 12, staffNum: 24}
             list.push(obj)
+        })
+        ctx.body = {
+            list, success: true, msg: '查询成功！'
+        }
+    })
+
+    //设置指定课程人员必看
+    router.get('/staffCompulsoryCourses/createByList', async (ctx) => {
+        const result = await getApi(ctx)
+        const list = []
+        result.list.forEach(res => {
+            const obj = {...res, studyTime: 12, credits: 5, courseNum: 12, staffNum: 24}
+            list.push(obj)
+        })
+        ctx.body = {
+            list, success: true, msg: '查询成功！'
+        }
+    })
+
+    router.post('/staffCompulsoryCourses/getCourseByStaffId', async (ctx) => {
+        const result = await getApi(ctx)
+        const list = []
+        result.list.forEach(res => {
+            list.push(deconstructionData(res))
         })
         ctx.body = {
             list, success: true, msg: '查询成功！'

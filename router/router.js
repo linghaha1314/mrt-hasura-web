@@ -10,6 +10,8 @@ const {
     getListByPage,
     invertCtxData,
     formatTime,
+    deconstructionArr,
+    convertRate,
 } = require('../server/user');
 const pool = require("../utils/pool");
 const request = require("request-promise");
@@ -676,13 +678,15 @@ module.exports = (router) => {
         }
     });
 
-    router.get(`/staff/getStudyListByPage`, async (ctx) => {
+    router.post(`/staff/getStudyListByPage`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx);
         const list = [];
         data.list.forEach(res => {
             const obj = deconstructionData(res);
             obj.studyTime = Math.floor(obj.studyTime / 60)
+            obj.studyTotalTime = Math.floor(obj.studyTotalTime / 60)
+            obj.notCompleteNum = 0
             obj.credits = obj.credits || 0
             list.push(obj);
         })
@@ -716,7 +720,7 @@ module.exports = (router) => {
         }
     });
 
-    router.get(`/courseStatistic/getCourseStatistic`, async (ctx) => {
+    router.post(`/courseStatistic/getCourseStatistic`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx);
         const list = [];
@@ -724,6 +728,33 @@ module.exports = (router) => {
             const obj = deconstructionData(res);
             obj.score = obj.score ? Number((obj.score * 2).toFixed(1)) : 0   //转化成十分制
             obj.studyTime = Math.floor(obj.studyTime / 60)
+            const compulsoryStaffs = []
+            const watchStaffs = [];
+            let notCompleteStaffNum = 0;
+            obj.compulsoryStaffs = deconstructionArr(obj.compulsoryStaffs);
+            obj.watchRecords = deconstructionArr(obj.watchRecords);
+            obj.compulsoryStaffs.forEach(ii => {
+                console.log('--->>???', ii);
+                // if (ii[0].courseCompleted === undefined || !ii[0].courseCompleted) {
+                //     console.log('--->>2222', ii.courseCompleted);
+                //     notCompleteStaffNum++;
+                // }
+                // compulsoryStaffs.push({...ii, courseCompleted: ii[0].courseCompleted});
+                compulsoryStaffs.push(ii);
+            })
+            obj.compulsoryStaffs = compulsoryStaffs;
+            obj.watchRecords.forEach(ii => {
+                watchStaffs.push({...ii, courseCompleted: ii[0].courseCompleted});
+            })
+            delete obj.watchRecords
+            obj['watchStaffs'] = watchStaffs;
+            console.log(obj)
+            obj['actualStudyNum'] = watchStaffs.length;
+            obj['expectStudyNum'] = obj.compulsoryStaffs.length;
+            obj['notCompleteStaffNum'] = notCompleteStaffNum;
+            obj['studyEngageRate'] = convertRate(watchStaffs.length / (obj.compulsoryStaffs.length || 1));  //学习参与率
+            obj['completeEngageRate'] = convertRate((obj.compulsoryStaffs.length - notCompleteStaffNum) / obj.compulsoryStaffs.length);  //学习完成人率
+            obj['notCompleteEngageRate'] = convertRate(notCompleteStaffNum / obj.compulsoryStaffs.length); //
             list.push(obj);
         })
         if (list) {

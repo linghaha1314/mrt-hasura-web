@@ -16,7 +16,8 @@ const {
     validLogin,
     getApi,
     deconstructionData,
-    DateToStr, invertCtxData
+    DateToStr,
+    invertCtxData
 } = require("../server/user");
 const request = require("request");
 const CryptoJS = require("crypto-js");
@@ -177,6 +178,23 @@ module.exports = (router) => {
         }
         ctx.body = {
             success: false, msg: '失败！'
+        }
+    });
+
+    router.post(`/createUpdateByList`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const tableName = ctx.request.realUrl.split('/')[1];
+        const deleteKey = ctx.request.body.deleteKey || 'id'
+        const list = ctx.request.body.list;
+        console.log(deleteKey, tableName, ctx.request.body)
+        if (ctx.request.body.id) {
+            await deleteById(invertCtxData({[deleteKey]: ctx.request.body.id}, `/${tableName}/deleteById`));
+        }
+        for (const res of list) {
+            await create(invertCtxData({staffId: res.staffId, courseId: res.courseId}, `/${tableName}/create`));
+        }
+        ctx.body = {
+            success: true, msg: '设置成功！'
         }
     });
 
@@ -414,4 +432,5 @@ module.exports = (router) => {
             // })
         }
     });
+
 }

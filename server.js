@@ -30,7 +30,7 @@ try {
     });
     app.use(cas.auth);
 } catch (e) {
-console.error(e);
+    console.error(e);
 }
 
 
@@ -158,6 +158,9 @@ app.use(async (ctx, next) => {
                 break;
             case 'updateById':
                 ctx.request.url = '/updateById'
+                break;
+            case 'createUpdateByList':
+                ctx.request.url = '/createUpdateByList'
                 break;
             case 'deleteMultiple':
                 ctx.request.url = '/deleteMultiple'

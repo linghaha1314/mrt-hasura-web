@@ -367,6 +367,18 @@ function deconstructionData(data) {
     return result
 }
 
+function deconstructionArr(arr) {
+    const list = [];
+    arr.forEach(res => {
+        list.push(deconstructionData(res));
+    })
+    return list;
+}
+
+function convertRate(val, num = 2) {
+    return (val || 0).toFixed(num) * 100 + '%'
+}
+
 //生成年月日
 function formatTime(date, format = 'YY-MM-DD') {
     if (typeof date === 'string') {
@@ -471,6 +483,7 @@ module.exports = {
     timeToDay,
     changeDataTree,
     invertCtxData,
+    convertRate,
     create,
     DateToStr,
     updateById,
@@ -481,5 +494,6 @@ module.exports = {
     deleteMultiple,
     covertColumnByType,
     deconstructionData,
+    deconstructionArr,
     dictionaryDataByTypeCode
 }
