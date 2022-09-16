@@ -987,9 +987,10 @@ module.exports = (router) => {
         const data = await getApi(ctx, next);
         const result = data.data[0];
         const classData = result?.courseClassData?.length > 0 ? result.courseClassData[0].courseTypeData : {};
+        const columnData = result?.columnData?.length > 0 ? result.columnData[0].homeColumnData : {};
         const rr = deconstructionData(result);
         ctx.body = {
-            data: {...rr, ...classData}, total: data.total, success: true, msg: '查询成功！'
+            data: {...rr, ...classData, ...columnData}, total: data.total, success: true, msg: '查询成功！'
         }
     });
 

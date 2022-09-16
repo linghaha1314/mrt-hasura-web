@@ -461,7 +461,11 @@ module.exports = (router) => {
         const result = await getApi(ctx)
         const list = []
         result.list.forEach(res => {
-            list.push(deconstructionData(res))
+            const data = deconstructionData(res);
+            data.courseCompleted = data.watchList.length > 0 ? data.watchList[0].courseCompleted : false
+            if (!data.courseCompleted) {
+                list.push(data)
+            }
         })
         ctx.body = {
             list, success: true, msg: '查询成功！'
