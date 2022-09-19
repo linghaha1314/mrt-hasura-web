@@ -208,6 +208,7 @@ module.exports = (router) => {
     router.post(`/user/getUserListByPage`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx, next);
+        const list = [];
         data.list.forEach((res, index) => {
             res['roles'] = [];
             const roleList = [];
@@ -216,10 +217,11 @@ module.exports = (router) => {
                 res['roles'].push(obj.roleId)
                 roleList.push(obj)
             })
-            data.list[index]['roleList'] = roleList
+            res.roleList = roleList;
+            list.push(deconstructionData(res))
         })
         ctx.body = {
-            list: data.list, total: data.total['aggregate'].count, success: true, msg: '查询成功！'
+            list, total: data.total['aggregate'].count, success: true, msg: '查询成功！'
         }
     });
 

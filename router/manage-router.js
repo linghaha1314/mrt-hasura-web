@@ -4,6 +4,7 @@ const {
     invertCtxData,
     deleteById,
     getListByPage,
+    convertColumn,
     covertColumnByType,
     create,
     getApi,
@@ -12,6 +13,7 @@ const {
     formatTime,
     timeToDay
 } = require("../server/user");
+const pool = require("../utils/pool");
 module.exports = (router) => {
 
     router.post(`/recommend/createUpdate`, async (ctx) => {
@@ -432,15 +434,40 @@ module.exports = (router) => {
         }
     })
 
-    router.get('/section/getSectionStatistic', async (ctx) => {
-        const result = await getApi(ctx)
-        const list = []
-        result.list.forEach(res => {
-            const obj = {...res, studyTime: 12, credits: 5, courseNum: 12, staffNum: 24}
-            list.push(obj)
-        })
+    router.post('/section/getSectionStatistic', async (ctx) => {
+        const sql = `select a.name, b.section_num, c.course_num, c.course_staff, c.study_time_num, c.credits_num
+         from kb_section a
+         left join (select b1.section_id, count(b1.id) as section_num from kb_user b1 group by b1.section_id) b
+                   on a.id = b.section_id
+         left join (select c1.section_id,
+                           count(distinct c2.course_id)                      as course_num,
+                           sum(c3.credits)                                   as credits_num,
+                           sum(c2.study_time)                                as study_time_num,
+                           array_to_string(array_agg(distinct c1.name), ',') as course_staff
+                    from kb_user c1
+                             inner join kb_watch_record c2 on c1.id = c2.staff_id
+                             left join kb_courses c3 on c2.course_id = c3.id and c2.course_completed is true
+                    where c2.start_date >= '2022-05-06'
+                      and c2.end_date <= '2022-08-10'
+                    group by c1.section_id) c on a.id = c.section_id;
+`;
+        const resultData = await pool.query(sql)
+        const totalData = {staffTotal: 0, timeTotal: 0, courseTotal: 0}
+        const list = covertColumnByType(resultData.rows, 2)
+        const staffTotal = new Set([])
+        list.forEach(res => {
+            staffTotal.add(res.courseStaff)
+            totalData.timeTotal += res.studyTimeNum
+            totalData.courseTotal += Number(res.courseNum)
+        });
         ctx.body = {
-            list, success: true, msg: '查询成功！'
+            data: {
+                totalData: {
+                    staffTotal: staffTotal.length,
+                    timeTotal: Math.ceil(totalData.timeTotal / 60),
+                    courseTotal: totalData.courseTotal
+                }, list
+            }, success: true, msg: '查询成功！'
         }
     })
 

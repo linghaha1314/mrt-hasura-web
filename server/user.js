@@ -481,6 +481,7 @@ module.exports = {
     getMenuTree,
     formatTime,
     timeToDay,
+    convertColumn,
     changeDataTree,
     invertCtxData,
     convertRate,
