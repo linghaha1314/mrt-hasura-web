@@ -434,6 +434,8 @@ module.exports = (router) => {
         }
     })
 
+
+    // 统计
     router.post('/section/getSectionStatistic', async (ctx) => {
         const sql = `select a.name, b.section_num, c.course_num, c.course_staff, c.study_time_num, c.credits_num
          from kb_section a
@@ -463,7 +465,7 @@ module.exports = (router) => {
         ctx.body = {
             data: {
                 totalData: {
-                    staffTotal: staffTotal.length,
+                    staffTotal: staffTotal.size || 0,
                     timeTotal: Math.ceil(totalData.timeTotal / 60),
                     courseTotal: totalData.courseTotal
                 }, list
@@ -484,18 +486,88 @@ module.exports = (router) => {
         }
     })
 
-    router.post('/staffCompulsoryCourses/getCourseByStaffId', async (ctx) => {
-        const result = await getApi(ctx)
-        const list = []
-        result.list.forEach(res => {
-            const data = deconstructionData(res);
-            data.courseCompleted = data.watchList.length > 0 ? data.watchList[0].courseCompleted : false
-            if (!data.courseCompleted) {
-                list.push(data)
-            }
-        })
+    router.post('/sectionStatistic/getTableList', async (ctx) => {
+        const startDate = ctx.request.body.startDate || '1997-01-01'
+        const endDate = ctx.request.body.endDate || formatTime()
+        const sectionId = ctx.request.body.sectionId || null
+        const name = ctx.request.body.name || '%%'
+        let whereSql = ` where name like '%${name}%'`
+        if (sectionId) {
+            whereSql += ` and a.id = '${sectionId}'`
+        }
+        const sql = `select a.name, b.section_staff_num, c.course_num, c.course_staff, c.study_time_num, c.credits_num
+         from kb_section a
+         left join (select b1.section_id, count(b1.id) as section_staff_num from kb_user b1 group by b1.section_id) b
+                   on a.id = b.section_id
+         left join (select c1.section_id,
+                           count(distinct c2.course_id)                      as course_num,
+                           sum(c3.credits)                                   as credits_num,
+                           sum(c2.study_time)                                as study_time_num,
+                           array_to_string(array_agg(distinct c1.name), ',') as course_staff
+                    from kb_user c1
+                             inner join kb_watch_record c2 on c1.id = c2.staff_id
+                             left join kb_courses c3 on c2.course_id = c3.id and c2.course_completed is true
+                    where c2.start_date >= $1
+                      and c2.end_date <= $2
+                    group by c1.section_id) c on a.id = c.section_id${whereSql};
+`;
+        const resultData = await pool.query(sql, [startDate, endDate])
+        const list = covertColumnByType(resultData.rows, 2)
+        list.forEach(res => {
+            res.studyTimeNum = Math.round(res.studyTimeNum / 60);
+            res.sectionStaffNum = res.sectionStaffNum ?? 0
+            res.courseNum = res.courseNum ?? 0
+            res.studyTimeNum = res.studyTimeNum ?? 0
+            res.creditsNum = res.creditsNum ?? 0
+            res.completedRate = 0;
+        });
         ctx.body = {
             list, success: true, msg: '查询成功！'
+        }
+    })
+
+    router.post('/sectionStatistic/getTotalData', async (ctx) => {
+        const startDate = ctx.request.body.startDate || '1997-01-01'
+        const endDate = ctx.request.body.endDate || formatTime()
+        const sectionId = ctx.request.body.sectionId || null
+        const name = ctx.request.body.name || '%%'
+        let whereSql = ` where name like '%${name}%'`
+        if (sectionId) {
+            whereSql += ` and a.id = '${sectionId}'`
+        }
+        const sql = `select a.name, b.section_staff_num, c.course_num, c.course_staff, c.study_time_num, c.credits_num
+         from kb_section a
+         left join (select b1.section_id, count(b1.id) as section_staff_num from kb_user b1 group by b1.section_id) b
+                   on a.id = b.section_id
+         left join (select c1.section_id,
+                           count(distinct c2.course_id)                      as course_num,
+                           sum(c3.credits)                                   as credits_num,
+                           sum(c2.study_time)                                as study_time_num,
+                           array_to_string(array_agg(distinct c1.name), ',') as course_staff
+                    from kb_user c1
+                             inner join kb_watch_record c2 on c1.id = c2.staff_id
+                             left join kb_courses c3 on c2.course_id = c3.id and c2.course_completed is true
+                    where c2.start_date >= $1
+                      and c2.end_date <= $2
+                    group by c1.section_id) c on a.id = c.section_id${whereSql};
+`;
+        const resultData = await pool.query(sql, [startDate, endDate])
+        const list = covertColumnByType(resultData.rows, 2)
+        const staffTotal = new Set([])
+        let timeTotal = 0;
+        let courseTotal = 0;
+        list.forEach(res => {
+            res.studyTimeNum = Math.round(res.studyTimeNum / 60);
+            if (res.courseStaff) {
+                staffTotal.add(res.courseStaff)
+            }
+            timeTotal += res.studyTimeNum
+            courseTotal += Number(res.courseNum)
+        });
+        ctx.body = {
+            data: {
+                staffTotal: staffTotal.size, timeTotal, courseTotal
+            }, success: true, msg: '查询成功！'
         }
     })
 }
