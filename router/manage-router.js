@@ -435,6 +435,20 @@ module.exports = (router) => {
     })
 
 
+    router.post('/staffCompulsoryCourses/getCourseByStaffId', async (ctx) => {
+        const result = await getApi(ctx)
+        const list = []
+        result.list.forEach(res => {
+            const data = deconstructionData(res);
+            data.courseCompleted = data.watchList.length > 0 ? data.watchList[0].courseCompleted : false
+            if (!data.courseCompleted) {
+                list.push(data)
+            }
+        })
+        ctx.body = {
+            list, success: true, msg: '查询成功！'
+        }
+    })
     // 统计
     router.post('/section/getSectionStatistic', async (ctx) => {
         const sql = `select a.name, b.section_num, c.course_num, c.course_staff, c.study_time_num, c.credits_num
