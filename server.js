@@ -38,7 +38,7 @@ try {
 app.use(static(path.join(__dirname, staticPath)));
 //数据处理
 app.use(bodyParser());
-// app.use(cors());
+app.use(cors());
 
 //日志记录
 app.use(async (ctx, next) => {

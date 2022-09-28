@@ -11,7 +11,9 @@ const {
     deconstructionData,
     getMenuTree,
     formatTime,
-    timeToDay
+    timeToDay,
+    DateToStr,
+    getList
 } = require("../server/user");
 const pool = require("../utils/pool");
 module.exports = (router) => {
@@ -434,6 +436,20 @@ module.exports = (router) => {
         }
     })
 
+    //新增主讲人
+    router.post('/user/createNewLecturer', async (ctx) => {
+        const getRoleIdByName = await getList(invertCtxData({search: '讲师'}, '/roles/getList', 'get'))
+        const createUserResult = await create(invertCtxData({
+            name: ctx.request.body.name, username: DateToStr(new Date())
+        }, '/user/create'))
+        const createRoleResult = await create(invertCtxData({
+            roleId: getRoleIdByName.list[0].id,  //讲师id
+            userId: createUserResult.rows[0].id
+        }, '/userRole/create'))
+        ctx.body = {
+            data: covertColumnByType(createRoleResult.rows, 2)[0], success: true, msg: '设置成功！'
+        }
+    })
 
     router.post('/staffCompulsoryCourses/getCourseByStaffId', async (ctx) => {
         const result = await getApi(ctx)

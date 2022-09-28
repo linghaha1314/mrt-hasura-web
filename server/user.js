@@ -72,9 +72,11 @@ function covertColumnByType(data, type = 1) {
 async function validLogin(loginObj) {
     // 连续登录五次错误就锁住这个帐号；登录错误就记录一次；
     const user = await pool.query('SELECT * FROM kb_user where username=$1', [loginObj.username]);
+    // console.log('??????', loginObj, user.rows)
     const bytes = CryptoJS.AES.decrypt(user.rows[0].password, 'kb12315')
     const originalText = bytes.toString(CryptoJS.enc.Utf8)
     // const pass = await pool.query(`SELECT * FROM kb_user where username=$1 And password=$2`, [loginObj.username, loginObj.password]);
+
     const pass = originalText === loginObj.password
     if (user.rows.length === 0) {
         result.msg = '用户名错误！';

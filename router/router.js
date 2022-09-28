@@ -442,7 +442,6 @@ module.exports = (router) => {
                 chapterId: ctx.request.body.chapterId,
                 questionId: res.questionId || null
             }, '/courseVerify/create'))
-            console.log('verify--', verifyCreateData);
         }
         ctx.body = {
             success: true, msg: '设置成功！'
@@ -583,6 +582,10 @@ module.exports = (router) => {
                 request: {
                     body: {...res, ...staff}, url: '/courses/createUpdate'
                 }
+            }
+            //如果没有主讲人，中断导入
+            if (res.lecturerId) {
+
             }
             courseCreateResult = await createUpdateCourses(createCourseCtx);
             //创建对应章节
@@ -856,6 +859,38 @@ module.exports = (router) => {
         }
     });
 
+    router.post('/courses/getDetailListByPage', async (ctx) => {
+        //sort 'date','hot','default',
+        const sql = ``
+    })
+
+    router.post(`/courses/getDataListByStaffNum`, async (ctx, next) => {
+        const sql = `select c.name, c.img, c.id, w.staffNum
+         from kb_courses c
+         left join (select kwr.course_id, count(distinct kwr.staff_id) as staffNum
+                    from kb_watch_record kwr
+                    group by kwr.course_id) w
+                   on c.id = w.course_id
+         where status = 1 order by w.staffNum desc nulls last limit $1;`
+        const result = await pool.query(sql, [ctx.request.body.limit || 3])
+        ctx.body = {
+            list: result.rows, total: result.rows.length, success: true, msg: '查询成功！'
+        }
+    });
+
+    router.get('/homeColumns/getCourseByColumnCode', async (ctx, next) => {
+        const data = await getApi(ctx);
+        const list = [];
+        data.list.forEach(res => {
+            res.columnName = res.courseColumn.length > 0 ? res.courseColumn[0].columnCodeData?.name : ''
+            res.typeName = res.typeList.length > 0 ? res.typeList[0].typeData?.typeName : ''
+            list.push(deconstructionData(res))
+        })
+        ctx.body = {
+            list, total: data.totalData.aggregateData.count, success: true, msg: '查询成功！'
+        }
+    })
+
     router.post(`/watchRecord/record`, async (ctx, next) => {
         const selectIsHasCtx = {
             request: {
@@ -957,8 +992,15 @@ module.exports = (router) => {
 
     router.get(`/collectCourse/getDataListByPage`, async (ctx, next) => {
         const data = await getApi(ctx, next);
+        const list = [];
+        data.list.forEach((res => {
+            const columnData = (res.courseData.courseColumn && res.courseData.courseColumn.length > 0) ? res.courseData.courseColumn[0].homeColumnData : {}
+            const typeNameData = (res.courseData.courseClass && res.courseData.courseClass.length > 0) ? res.courseData.courseClass[0].courseTypeData : {}
+            const obj = {...deconstructionData(res), ...columnData, ...typeNameData}
+            list.push(obj)
+        }))
         ctx.body = {
-            list: data.list, total: data.total['aggregate'].count, success: true, msg: '查询成功！'
+            list, total: data.total['aggregate'].count, success: true, msg: '查询成功！'
         }
     });
 
@@ -977,6 +1019,60 @@ module.exports = (router) => {
         }
     });
 
+    //全部课程查询和筛选
+    router.post('/courses/getAllListByPage', async (ctx) => {
+        let orderSql = ''
+        if (ctx.request.body.sort === 'hot') {
+            orderSql = `order by w.staff_num desc nulls last`
+
+        } else if (ctx.request.body.sort === 'date') {
+            orderSql = `order by created desc`
+        } else {
+            orderSql = ''
+        }
+        const sql = `select c.name,
+       c.img,
+       c.created,
+       c.status,
+       c.id,
+       w.staff_num,
+       s.section_id,
+       s.section_name,
+       m.major_id,
+       m.major_name,
+       u.lecturer_id,
+       u.lecturer_name,
+       cc.type_id,
+       cc.type_code,
+       cc.type_name
+from kb_courses c
+         left join (select kwr.course_id, count(distinct kwr.staff_id) as staff_num
+                    from kb_watch_record kwr
+                    group by kwr.course_id) w
+                   on c.id = w.course_id
+         left join (select s1.id as section_id, s1.name as section_name from kb_section s1) s
+                   on s.section_id = c.section_id
+         left join (select u1.id as lecturer_id, u1.name as lecturer_name from kb_user u1) u
+                   on u.lecturer_id = c.lecturer_id
+         left join (select m1.id as major_id, m1.name as major_name from kb_major m1) m on m.major_id = c.major_id
+         left join (select cc1.course_id, cc1.type_id, kct.type_name, kct.type_code
+                    from kb_course_class cc1
+                             left join (select kct1.id, kct1.name as type_name, kct1.code as type_code
+                                        from kb_course_type kct1) kct
+                                       on kct.id = cc1.type_id) cc on cc.course_id = c.id
+         where c.status = 1
+         and concat(cc.type_code) like $4
+         and (concat(c.name) like $1
+         or concat(u.lecturer_name) like $1
+         or concat(cc.type_name) like $1) ${orderSql} limit $2 offset $3`
+        console.log('---sql:', sql, ['%' + ctx.request.body.name + '%', ctx.request.body.limit, ctx.request.body.offset, (ctx.request.body.typeCode ?? '%') + '%'])
+        const result = await pool.query(sql, ['%' + ctx.request.body.name + '%', ctx.request.body.limit, ctx.request.body.offset, (ctx.request.body.typeCode ?? '%') + '%'])
+        const total = await pool.query(sql, ['%' + ctx.request.body.name + '%', 1000000, 0, (ctx.request.body.typeCode ?? '%') + '%'])
+        ctx.body = {
+            list: covertColumnByType(result.rows, 2), total: total.rows.length, success: true, msg: '查询成功！'
+        }
+    })
+
     router.get(`/course/getCourseById`, async (ctx, next) => {
         const studyCtx = {
             request: {
@@ -988,11 +1084,15 @@ module.exports = (router) => {
         const studyStaffNumber = (await getApi(studyCtx)).studyStaffNumber.total.count;
         const data = await getApi(ctx, next);
         const result = data.data[0];
+        console.log(result);
         const classData = result?.courseClassData?.length > 0 ? result.courseClassData[0].courseTypeData : {};
         const columnData = result?.columnData?.length > 0 ? result.columnData[0].homeColumnData : {};
         const rr = deconstructionData(result);
         ctx.body = {
-            data: {...rr, ...classData, ...columnData}, total: data.total, success: true, msg: '查询成功！'
+            data: {...rr, ...classData, classList: result.courseClassData, ...columnData},
+            total: data.total,
+            success: true,
+            msg: '查询成功！'
         }
     });
 
