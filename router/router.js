@@ -231,7 +231,7 @@ module.exports = (router) => {
         const data = await deleteById(ctx, next);
         //根据userId；删除
         ctx.body = {
-            list: data.list, total: data.total, success: true, msg: '查询成功！'
+            list: data.list, total: data.total, success: true, msg: '删除成功！'
         }
     });
 
@@ -582,10 +582,6 @@ module.exports = (router) => {
                 request: {
                     body: {...res, ...staff}, url: '/courses/createUpdate'
                 }
-            }
-            //如果没有主讲人，中断导入
-            if (res.lecturerId) {
-
             }
             courseCreateResult = await createUpdateCourses(createCourseCtx);
             //创建对应章节
@@ -1074,22 +1070,21 @@ from kb_courses c
     })
 
     router.get(`/course/getCourseById`, async (ctx, next) => {
-        const studyCtx = {
-            request: {
-                method: 'GET', url: `/watchRecord/getStaffNumberByCourseId?courseId=${ctx.request.query.id}`, json: true
-            }, header: {
-                "content-type": 'text/plain; charset=utf-8',
-            },
-        }
-        const studyStaffNumber = (await getApi(studyCtx)).studyStaffNumber.total.count;
         const data = await getApi(ctx, next);
-        const result = data.data[0];
-        console.log(result);
-        const classData = result?.courseClassData?.length > 0 ? result.courseClassData[0].courseTypeData : {};
-        const columnData = result?.columnData?.length > 0 ? result.columnData[0].homeColumnData : {};
-        const rr = deconstructionData(result);
+        const result = deconstructionData(data.data[0]);
+        let classData = {};
+        let columnData = {};
+        if (result.classList.length > 0) {
+            classData = result.classList[0]['courseTypeData'];
+        }
+        if (result.columnList.length > 0) {
+            columnData = result.columnList[0]['homeColumnData'];
+        }
+        const avgScore = (deconstructionData(data.avgData).avgScore || 5 / 1).toFixed(1)
         ctx.body = {
-            data: {...rr, ...classData, classList: result.courseClassData, ...columnData},
+            data: {...result, avgScore},
+            columnData,
+            classData,
             total: data.total,
             success: true,
             msg: '查询成功！'

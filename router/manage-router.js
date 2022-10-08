@@ -438,14 +438,16 @@ module.exports = (router) => {
 
     //新增主讲人
     router.post('/user/createNewLecturer', async (ctx) => {
+        const username = (ctx.request.body.username && ctx.request.body.username !== undefined) ? ctx.request.body.username : null
         const getRoleIdByName = await getList(invertCtxData({search: '讲师'}, '/roles/getList', 'get'))
         const createUserResult = await create(invertCtxData({
-            name: ctx.request.body.name, username: DateToStr(new Date())
+            name: ctx.request.body.name, username: username || DateToStr(new Date(), true)
         }, '/user/create'))
         const createRoleResult = await create(invertCtxData({
             roleId: getRoleIdByName.list[0].id,  //讲师id
             userId: createUserResult.rows[0].id
         }, '/userRole/create'))
+        //判断这个人已经存在而且是讲师！
         ctx.body = {
             data: covertColumnByType(createRoleResult.rows, 2)[0], success: true, msg: '设置成功！'
         }

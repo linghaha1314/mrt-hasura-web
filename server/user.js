@@ -432,14 +432,20 @@ function aryJoinAry(ary, ary2) {
 };
 
 //秒转化成时分秒的结构-生成时间随机数
-function DateToStr(date) {
+function DateToStr(date, isToMill = false) {
     const year = date.getFullYear();//年
     const month = date.getMonth();//月
     const day = date.getDate();//日
     const hours = date.getHours();//时
     const min = date.getMinutes();//分
     const second = date.getSeconds();//秒
-    return year.toString() + ((month + 1) > 9 ? (month + 1) : "0" + (month + 1)).toString() + (day > 9 ? day : ("0" + day)).toString() + (hours > 9 ? hours : ("0" + hours)).toString() + (min > 9 ? min : ("0" + min)).toString() + (second > 9 ? second : ("0" + second)).toString();
+    const milliseconds = date.getMilliseconds();//秒
+    let result = year.toString() + ((month + 1) > 9 ? (month + 1) : "0" + (month + 1)).toString() + (day > 9 ? day : ("0" + day)).toString() + (hours > 9 ? hours : ("0" + hours)).toString() + (min > 9 ? min : ("0" + min)).toString() + (second > 9 ? second : ("0" + second)).toString();
+    if (isToMill) {
+        result += milliseconds.toString()
+
+    }
+    return result
 }
 
 /**
