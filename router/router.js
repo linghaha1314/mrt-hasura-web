@@ -1022,15 +1022,14 @@ module.exports = (router) => {
             orderSql = `order by w.staff_num desc nulls last`
 
         } else if (ctx.request.body.sort === 'date') {
-            orderSql = `order by created desc`
+            orderSql = `order by c.created desc`
         } else {
             orderSql = ''
         }
-        const sql = `select c.name,
+        const sql = `select distinct c.id,c.name,
        c.img,
        c.created,
        c.status,
-       c.id,
        w.staff_num,
        s.section_id,
        s.section_name,
@@ -1055,7 +1054,7 @@ from kb_courses c
                     from kb_course_class cc1
                              left join (select kct1.id, kct1.name as type_name, kct1.code as type_code
                                         from kb_course_type kct1) kct
-                                       on kct.id = cc1.type_id) cc on cc.course_id = c.id
+                                       on kct.id = cc1.type_id order by cc1.created desc limit 1) cc on cc.course_id = c.id
          where c.status = 1
          and concat(cc.type_code) like $4
          and (concat(c.name) like $1

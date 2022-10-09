@@ -517,6 +517,17 @@ module.exports = (router) => {
             list, success: true, msg: '查询成功！'
         }
     })
+    router.post('/staffCompulsoryCourses/getDatalistByPage', async (ctx) => {
+        const result = await getApi(ctx)
+        const list = []
+        result.list.forEach(res => {
+            const obj = deconstructionData(res)
+            list.push(obj)
+        })
+        ctx.body = {
+            list, total: deconstructionData(result.totalData).count, success: true, msg: '查询成功！'
+        }
+    })
 
     router.post('/sectionStatistic/getTableList', async (ctx) => {
         const startDate = ctx.request.body.startDate || '1997-01-01'
