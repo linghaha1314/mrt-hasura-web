@@ -841,7 +841,10 @@ module.exports = (router) => {
                 res['recordChapter'].forEach(rr => {
                     if (rr.completed) {
                         res.completed = true;
+                        res.completedRate = 100;
                     } else {
+                        res.completedRate = Math.floor(rr.studyTime / rr.totalTime)
+                        console.log(rr, '-->>??', res.completedRate)
                         res.studyTime = rr.studyTime
                     }
                 })
@@ -1026,20 +1029,22 @@ module.exports = (router) => {
         } else {
             orderSql = ''
         }
-        const sql = `select distinct c.id,c.name,
-       c.img,
-       c.created,
-       c.status,
-       w.staff_num,
-       s.section_id,
-       s.section_name,
-       m.major_id,
-       m.major_name,
-       u.lecturer_id,
-       u.lecturer_name,
-       cc.type_id,
-       cc.type_code,
-       cc.type_name
+        const sql = `select 
+                c.id,
+                c.name,
+                c.img,
+                c.created,
+                c.status,
+                w.staff_num,
+                s.section_id,
+                s.section_name,
+                m.major_id,
+                m.major_name,
+                u.lecturer_id,
+                u.lecturer_name,
+                array_to_string(array_agg(cc.type_id), ',') as type_id,
+                array_to_string(array_agg(cc.type_code), ',') as type_code,
+                array_to_string(array_agg(cc.type_name), ',') as type_name
 from kb_courses c
          left join (select kwr.course_id, count(distinct kwr.staff_id) as staff_num
                     from kb_watch_record kwr
@@ -1054,12 +1059,12 @@ from kb_courses c
                     from kb_course_class cc1
                              left join (select kct1.id, kct1.name as type_name, kct1.code as type_code
                                         from kb_course_type kct1) kct
-                                       on kct.id = cc1.type_id order by cc1.created desc limit 1) cc on cc.course_id = c.id
+                                       on kct.id = cc1.type_id order by cc1.created desc) cc on cc.course_id = c.id
          where c.status = 1
          and concat(cc.type_code) like $4
          and (concat(c.name) like $1
          or concat(u.lecturer_name) like $1
-         or concat(cc.type_name) like $1) ${orderSql} limit $2 offset $3`
+         or concat(cc.type_name) like $1) group by c.id,w.staff_num,s.section_id,s.section_name,m.major_id,m.major_name,u.lecturer_id,u.lecturer_name ${orderSql} limit $2 offset $3`
         console.log('---sql:', sql, ['%' + ctx.request.body.name + '%', ctx.request.body.limit, ctx.request.body.offset, (ctx.request.body.typeCode ?? '%') + '%'])
         const result = await pool.query(sql, ['%' + ctx.request.body.name + '%', ctx.request.body.limit, ctx.request.body.offset, (ctx.request.body.typeCode ?? '%') + '%'])
         const total = await pool.query(sql, ['%' + ctx.request.body.name + '%', 1000000, 0, (ctx.request.body.typeCode ?? '%') + '%'])
@@ -1081,14 +1086,34 @@ from kb_courses c
         }
         const avgScore = (deconstructionData(data.avgData).avgScore || 5 / 1).toFixed(1)
         ctx.body = {
-            data: {...result, avgScore},
-            columnData,
-            classData,
-            total: data.total,
-            success: true,
-            msg: '查询成功！'
+            data: {...result, avgScore}, columnData, classData, total: data.total, success: true, msg: '查询成功！'
         }
     });
+
+    router.post('/watchRecord/getStaffWatchListByPage', async (ctx) => {
+        const data = await getApi(ctx);
+        const list = [];
+        data.list.forEach(res => {
+            const obj = deconstructionData(res)
+            const len = obj.chapters.length
+            let completed = obj.courseCompleted ? len : 0
+            if (!obj.courseCompleted) {
+                obj.chapters.forEach(dd => {
+                    if (dd.recordChapter.length > 0 && dd.recordChapter[0].isRealCompleted) {
+                        completed++
+                    } else if (dd.recordChapter.length > 0 && !dd.recordChapter[0].isRealCompleted) {
+                        completed += Number((dd.recordChapter[0].maxTime / dd.recordChapter[0].totalTime).toFixed(1))
+                    }
+                })
+            }
+            console.log('completed', completed)
+            obj.completedRate = Math.floor((completed / len) * 100)
+            list.push(obj)
+        })
+        ctx.body = {
+            list, total: data.total.aggregate.count, success: true, msg: '查询成功！'
+        }
+    })
 
     router.post(`/cert/download`, async (ctx) => {
         // const PizZip = require('pizzip');
