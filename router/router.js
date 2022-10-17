@@ -689,6 +689,11 @@ module.exports = (router) => {
             obj.studyTotalTime = Math.floor(obj.studyTotalTime / 60)
             obj.notCompleteNum = 0
             obj.credits = obj.credits || 0
+            obj.mustBeCourseList = [];
+            obj.compulsoryCourses.forEach(rr => {
+                rr.isCompleted = rr.courseData.completed.length ? true : false;
+                obj.mustBeCourseList.push(deconstructionData(rr))
+            })
             list.push(obj);
         })
         if (list) {
