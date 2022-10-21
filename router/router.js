@@ -1049,7 +1049,10 @@ module.exports = (router) => {
                 u.lecturer_name,
                 array_to_string(array_agg(cc.type_id), ',') as type_id,
                 array_to_string(array_agg(cc.type_code), ',') as type_code,
-                array_to_string(array_agg(cc.type_name), ',') as type_name
+                array_to_string(array_agg(cc.type_name), ',') as type_name,
+                array_to_string(array_agg(col.column_id), ',')   as column_id,
+                array_to_string(array_agg(col.column_code), ',') as column_code,
+                array_to_string(array_agg(col.column_name), ',') as column_name
 from kb_courses c
          left join (select kwr.course_id, count(distinct kwr.staff_id) as staff_num
                     from kb_watch_record kwr
@@ -1060,6 +1063,11 @@ from kb_courses c
          left join (select u1.id as lecturer_id, u1.name as lecturer_name from kb_user u1) u
                    on u.lecturer_id = c.lecturer_id
          left join (select m1.id as major_id, m1.name as major_name from kb_major m1) m on m.major_id = c.major_id
+         left join (select ccol1.column_id, ccol1.course_id, kch.column_code, kch.column_name
+                    from kb_course_column ccol1
+                             left join (select khc1.code as column_code, khc1.name as column_name, khc1.id
+                                        from kb_home_columns khc1) kch
+                                       on ccol1.column_id = kch.id) col on c.id = col.course_id
          left join (select cc1.course_id, cc1.type_id, kct.type_name, kct.type_code
                     from kb_course_class cc1
                              left join (select kct1.id, kct1.name as type_name, kct1.code as type_code
@@ -1067,12 +1075,13 @@ from kb_courses c
                                        on kct.id = cc1.type_id order by cc1.created desc) cc on cc.course_id = c.id
          where c.status = 1
          and concat(cc.type_code) like $4
+         and concat(col.column_code) like $5
          and (concat(c.name) like $1
          or concat(u.lecturer_name) like $1
          or concat(cc.type_name) like $1) group by c.id,w.staff_num,s.section_id,s.section_name,m.major_id,m.major_name,u.lecturer_id,u.lecturer_name ${orderSql} limit $2 offset $3`
         console.log('---sql:', sql, ['%' + ctx.request.body.name + '%', ctx.request.body.limit, ctx.request.body.offset, (ctx.request.body.typeCode ?? '%') + '%'])
-        const result = await pool.query(sql, ['%' + ctx.request.body.name + '%', ctx.request.body.limit, ctx.request.body.offset, (ctx.request.body.typeCode ?? '%') + '%'])
-        const total = await pool.query(sql, ['%' + ctx.request.body.name + '%', 1000000, 0, (ctx.request.body.typeCode ?? '%') + '%'])
+        const result = await pool.query(sql, ['%' + ctx.request.body.name + '%', ctx.request.body.limit, ctx.request.body.offset, (ctx.request.body.typeCode ?? '%') + '%', (ctx.request.body.columnCode ?? '%') + '%'])
+        const total = await pool.query(sql, ['%' + ctx.request.body.name + '%', 1000000, 0, (ctx.request.body.typeCode ?? '%') + '%', (ctx.request.body.columnCode ?? '%') + '%'])
         ctx.body = {
             list: covertColumnByType(result.rows, 2), total: total.rows.length, success: true, msg: '查询成功！'
         }
