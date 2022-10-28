@@ -2,11 +2,15 @@ const pool = require('../utils/pool');
 const request = require("request-promise");
 const {search} = require("koa/lib/request");
 let {refUrl} = require('../config.js')
+const path = require("path");
 refUrl = refUrl + '/api/rest'
 const result = {
     msg: '', success: false
 };
 const CryptoJS = require('crypto-js');
+const fs = require("fs");
+const Docxtemplater = require("docxtemplater");
+const PizZip = require("pizzip");
 
 //获取表名
 function getTableName(url) {
@@ -327,6 +331,27 @@ async function changeDataTree(list, key) {
     return result;
 }
 
+async function newCert(renderObj = {}, pathName) {
+    const originPath = await getListByPage(invertCtxData({
+        sort: 'sequence desc, status desc'
+    }, '/cert/getListByPage', 'get'))
+    console.log('---originPath: ', originPath)
+    const content = fs.readFileSync(path.resolve(__dirname, `..${originPath.list[0].path}`), "binary");
+
+    const zip = new PizZip(content);
+
+    const doc = new Docxtemplater(zip, {
+        paragraphLoop: true, linebreaks: true,
+    });
+
+    doc.render(renderObj);
+
+    const buf = doc.getZip().generate({
+        type: "nodebuffer", compression: "DEFLATE",
+    });
+    fs.writeFileSync(path.resolve(__dirname, `../attachs/${pathName}`), buf);
+}
+
 //菜单tree结构设置
 function getMenuTree(parentList, childList) {
     for (let i = 0; i < parentList.length; i++) {
@@ -489,6 +514,7 @@ module.exports = {
     getMenuTree,
     formatTime,
     timeToDay,
+    newCert,
     convertColumn,
     changeDataTree,
     invertCtxData,

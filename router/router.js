@@ -12,6 +12,7 @@ const {
     formatTime,
     deconstructionArr,
     convertRate,
+    newCert,
 } = require('../server/user');
 const pool = require("../utils/pool");
 const request = require("request-promise");
@@ -685,14 +686,20 @@ module.exports = (router) => {
         const list = [];
         data.list.forEach(res => {
             const obj = deconstructionData(res);
+            console.log('--->>??', obj);
             obj.studyTime = Math.floor(obj.studyTime / 60)
             obj.studyTotalTime = Math.floor(obj.studyTotalTime / 60)
             obj.notCompleteNum = 0
             obj.credits = obj.credits || 0
+            obj.watchNum = obj.watchRecords.nodes.length
             obj.mustBeCourseList = [];
             obj.compulsoryCourses.forEach(rr => {
                 rr.isCompleted = rr.courseData.completed.length ? true : false;
                 obj.mustBeCourseList.push(deconstructionData(rr))
+            })
+            obj.watchRecordList = []
+            obj.watchRecords.nodes.forEach(rr => {
+                obj.watchRecordList.push(deconstructionData(rr));
             })
             list.push(obj);
         })
@@ -907,6 +914,14 @@ module.exports = (router) => {
                 }, url: ctx.request.realUrl
             }
         }
+        const nameData = {
+            staffName: ctx.request.body['staffName'] || '',
+            courseName: ctx.request.body['courseName'] || '',
+            majorName: ctx.request.body['majorName'] || '',
+        }
+        delete ctx.request.body?.staffName
+        delete ctx.request.body?.courseName
+        delete ctx.request.body?.majorName
         const data = await getListByPage(selectIsHasCtx);
         if (data.list.length === 0) {  //没有观看记录
             await create(ctx, next);
@@ -946,15 +961,23 @@ module.exports = (router) => {
                 }
                 const result = await getApi(cc);
                 if (result['completedChapterList'].length === result['chapterList'].length) {
-                    //修改观看课程的状态；
+                    //修改观看课程的状态；生成一个证书！人员名+课程名+帐号；把文件链接存储到得分表
                     await pool.query(`update kb_watch_record set course_completed=true where course_id = $1`, [ctx.request.body['courseId']]);
                     //学分记录;应该避免重复录入数据！
+                    //生成证书，并存储在数据库中；
+                   await newCert({
+                        name: nameData.staffName || '',
+                        title: nameData.courseName || '',
+                        typeName: nameData.majorName || '',
+                        date: formatTime('')
+                    }, nameData.staffName + nameData.courseName + '.doc')
                     const createStaffCreditsCtx = {
                         request: {
                             body: {
                                 staffId: ctx.request.body.staffId,
                                 courseId: ctx.request.body.courseId,
-                                credits: result['courseData'][0].credits
+                                credits: result['courseData'][0].credits || 0,
+                                path: '/attachs/' + nameData.staffName + nameData.courseName + '.doc'
                             }, url: '/staffCredits/create'
                         }
                     }

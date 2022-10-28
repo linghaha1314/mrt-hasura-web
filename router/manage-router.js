@@ -32,6 +32,17 @@ module.exports = (router) => {
         }
     });
 
+    router.post(`/feedback/getDataListByPage`, async (ctx) => {
+        const data = await getApi(ctx)
+        const list = [];
+        data.list.forEach(res => {
+            list.push(deconstructionData(res))
+        })
+        ctx.body = {
+            list, total: data['totalData']['aggregate'].count, success: true, msg: '设置成功！'
+        }
+    });
+
     router.post(`/courses/deleteAllById`, async (ctx, next) => {
         await deleteById(invertCtxData({courseId: ctx.request.body.id}, '/courseClass/deleteById'))
         await deleteById(invertCtxData({courseId: ctx.request.body.id}, '/courseColumn/deleteById'))
@@ -517,6 +528,7 @@ module.exports = (router) => {
             list, success: true, msg: '查询成功！'
         }
     })
+
     router.post('/staffCompulsoryCourses/getDatalistByPage', async (ctx) => {
         const result = await getApi(ctx)
         const list = []
