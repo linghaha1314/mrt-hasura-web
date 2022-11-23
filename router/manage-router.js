@@ -13,7 +13,8 @@ const {
     formatTime,
     timeToDay,
     DateToStr,
-    getList
+    getList,
+    getDataById
 } = require("../server/user");
 const pool = require("../utils/pool");
 module.exports = (router) => {
@@ -464,6 +465,23 @@ module.exports = (router) => {
         }
     })
 
+    //用户导入
+    router.post('/user/multiImport', async (ctx) => {
+        //没有就新增，有就覆盖数据
+        const list = ctx.request.body.list;
+        for (const res of list) {
+            const isExistArr = await getDataById(invertCtxData({username: res.username}, '/user/getListByPage'));
+            if (isExistArr.length > 0) {
+                await updateById(invertCtxData({id: isExistArr[0].id, ...res}, '/user/updateById'));
+            } else {
+                await create(invertCtxData(res, '/user/create'));
+            }
+        }
+        ctx.body = {
+            data: list.length, success: true, msg: '导入成功！'
+        }
+    })
+
     router.post('/staffCompulsoryCourses/getCourseByStaffId', async (ctx) => {
         const result = await getApi(ctx)
         const list = []
@@ -569,7 +587,7 @@ module.exports = (router) => {
         const resultData = await pool.query(sql, [startDate, endDate])
         const list = covertColumnByType(resultData.rows, 2)
         list.forEach(res => {
-            res.studyTimeNum = Math.round(res.studyTimeNum / 60);
+            res.studyTimeNum = res.studyTimeNum ? ((res.studyTimeNum / 60 / 60).toFixed(4) || 0) : 0;
             res.sectionStaffNum = res.sectionStaffNum ?? 0
             res.courseNum = res.courseNum ?? 0
             res.studyTimeNum = res.studyTimeNum ?? 0
@@ -612,7 +630,7 @@ module.exports = (router) => {
         let timeTotal = 0;
         let courseTotal = 0;
         list.forEach(res => {
-            res.studyTimeNum = Math.round(res.studyTimeNum / 60);
+            res.studyTimeNum = Math.round(res.studyTimeNum / 60)
             if (res.courseStaff) {
                 staffTotal.add(res.courseStaff)
             }
@@ -621,7 +639,7 @@ module.exports = (router) => {
         });
         ctx.body = {
             data: {
-                staffTotal: staffTotal.size, timeTotal, courseTotal
+                staffTotal: staffTotal.size, timeTotal: (timeTotal / 60).toFixed(1), courseTotal
             }, success: true, msg: '查询成功！'
         }
     })

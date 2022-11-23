@@ -239,6 +239,7 @@ async function updateById(ctx, next) {
         }
     }
     columns = columns.slice(0, columns.length - 1)
+    console.log('---columns', columns)
     await pool.query(`
     update  ${getTableName(ctx.request.url)}
     set ${columns}
@@ -246,6 +247,7 @@ async function updateById(ctx, next) {
     const currentRow = await pool.query(`
     select * from  ${getTableName(ctx.request.url)}
     where id = $1`, [ctx.request.body.id]);
+    console.log('currentRow', ctx.request.body.id, `update  ${getTableName(ctx.request.url)} set ${columns} where id = $1`, currentRow)
     return covertColumnByType(currentRow.fields, 2)
 }
 

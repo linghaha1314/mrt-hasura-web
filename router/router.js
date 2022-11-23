@@ -686,9 +686,8 @@ module.exports = (router) => {
         const list = [];
         data.list.forEach(res => {
             const obj = deconstructionData(res);
-            console.log('--->>??', obj);
-            obj.studyTime = Math.floor(obj.studyTime / 60)
-            obj.studyTotalTime = Math.floor(obj.studyTotalTime / 60)
+            obj.studyTime = obj.studyTime;
+            obj.studyTotalTime = (obj.studyTotalTime / 60 / 60).toFixed(1) || 0
             obj.notCompleteNum = 0
             obj.credits = obj.credits || 0
             obj.watchNum = obj.watchRecords.nodes.length
@@ -740,14 +739,13 @@ module.exports = (router) => {
         (data.list || []).forEach(res => {
             const obj = deconstructionData(res);
             obj.score = obj.score ? Number((obj.score * 2).toFixed(1)) : 0   //转化成十分制
-            obj.studyTime = Math.floor(obj.studyTime / 60)
+            obj.studyTime = (obj.studyTime / 60 / 60).toFixed(2)
             const compulsoryStaffs = []
             const watchStaffs = [];
             let notCompleteStaffNum = 0;
             obj.compulsoryStaffs = deconstructionArr(obj.compulsoryStaffs);
             obj.watchRecords = deconstructionArr(obj.watchRecords);
             obj.compulsoryStaffs.forEach(ii => {
-                console.log('--->>???', ii);
                 // if (ii[0].courseCompleted === undefined || !ii[0].courseCompleted) {
                 //     console.log('--->>2222', ii.courseCompleted);
                 //     notCompleteStaffNum++;
@@ -965,7 +963,7 @@ module.exports = (router) => {
                     await pool.query(`update kb_watch_record set course_completed=true where course_id = $1`, [ctx.request.body['courseId']]);
                     //学分记录;应该避免重复录入数据！
                     //生成证书，并存储在数据库中；
-                   await newCert({
+                    await newCert({
                         name: nameData.staffName || '',
                         title: nameData.courseName || '',
                         typeName: nameData.majorName || '',
