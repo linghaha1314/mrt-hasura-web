@@ -240,23 +240,27 @@ module.exports = (router) => {
     //批量导入
     router.post(`/import`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
-        const newCtx = ctx;
-        let count = 0;
-        for (const res of ctx.request.body) {
-            newCtx.request.body = res
-            const data = await create(newCtx, next);
-            if (data.rowCount > 0) {
-                count += data.rowCount
+        const uniqueKey = ctx.request.body.uniqueKey || 'name';
+        const tableName = ctx.request.url.split('/')[1];
+        const list = ctx.request.body.list;
+        let data = {};
+        //存在就修改，不存在就新增
+        try {
+            for (const res of list) {
+                const isExistArr = await getDataById(invertCtxData({[uniqueKey]: res[uniqueKey]}, `/${tableName}/getListByPage`));
+                if (isExistArr.length > 0) {
+                    data = await updateById(invertCtxData({id: isExistArr[0].id, ...res}, `/${tableName}/updateById`));
+                } else {
+                    data = await create(invertCtxData(res, `/${tableName}/create`));
+                }
             }
-        }
-        if (count > 0) {
             ctx.body = {
-                insertCount: count, success: true, msg: '添加成功！'
+                insertCount: list.length, success: true, msg: '导入成功！'
             }
-            return;
-        }
-        ctx.body = {
-            success: false, msg: '新增失败！'
+        } catch (err) {
+            ctx.body = {
+                error: err, success: false, msg: '导入失败！'
+            }
         }
     });
 
