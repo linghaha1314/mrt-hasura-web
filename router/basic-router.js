@@ -259,7 +259,7 @@ module.exports = (router) => {
             }
         } catch (err) {
             ctx.body = {
-                error: err, success: false, msg: '导入失败！'
+                error: err?.detail, success: false, msg: err?.detail || '导入失败！'
             }
         }
     });
@@ -281,7 +281,6 @@ module.exports = (router) => {
 
     //自定义接口
     router.post('/login', async (ctx) => {
-        console.log(ctx.request.body.password, 88)
         const bytes = CryptoJS.AES.decrypt(ctx.request.body.password, 'kb12315')
         const originalText = bytes.toString(CryptoJS.enc.Utf8)
         ctx.request.body.password = originalText
