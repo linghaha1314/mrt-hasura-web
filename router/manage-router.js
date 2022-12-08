@@ -157,6 +157,10 @@ module.exports = (router) => {
         }, '/approvalProcess/getApprovalListById', 'get', 'getApi'))
         delete ctx.request.body.tableName
         let changeCourseData = {}
+        if (tableName === 'courses') {
+            //查找对应课程的待审批流程；如果有status===11，状态变成3---已失效
+            await pool.query(` update kb_workflow_start set status=3 where status = 11 and object_id=$1`, [ctx.request.body.objectId]);
+        }
         const data = await create(invertCtxData({
             ...ctx.request.body, currentRoleId: getApprovalListData.list[0]['roleData']['roleId']
         }, '/workflowStart/create'))
@@ -213,11 +217,8 @@ module.exports = (router) => {
         ctx.request.url = ctx.request.realUrl
         ctx.request.body.status = Number(ctx.request.body.status)
         const courseName = ctx.request.body.name !== undefined && ctx.request.body.name ? ctx.request.body.name : '';
-        // const tableName = ctx.request.body.table !== undefined && ctx.request.body.table ? ctx.request.body.table : '';
         delete ctx.request.body.name;
-        // delete ctx.request.body.table;
         const data = await getApi(ctx)
-        console.log('data', data);
         let list = [];
         let total = 0;
         if (ctx.request.body.status === 11) {
@@ -359,7 +360,7 @@ module.exports = (router) => {
             }
         })
         list = arr
-        total = list.length
+        // total = list.length
         if (list) {
             ctx.body = {
                 list, total, success: true, msg: '查询成功！'
@@ -411,7 +412,6 @@ module.exports = (router) => {
         //改变课程的状态
         if (isEnd) {
             if (typeCode === 'home_recommend') {
-                console.log('==>>??home_recommend')
                 await updateById(invertCtxData({
                     id: ctx.request.body.objectId, recommendStatus: status, recommendDeadline: timeToDay()
                 }, `/${tableName}/updateById`))

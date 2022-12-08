@@ -831,18 +831,6 @@ module.exports = (router) => {
         }
     });
 
-    //client接口
-    // router.post('/client/login', async (ctx) => {
-    //     const result = await validLogin(ctx.request.body);
-    //     ctx.body = result.success ? {
-    //         ...result, token: jsonwebtoken.sign({
-    //             data: {
-    //                 id: result.id, name: ctx.request.body.username
-    //             }, exp: Math.floor(Date.now() / 1000) + (60 * 60), // 60 seconds * 60 minutes = 1 hour
-    //         }, 'kbds random secret'),
-    //     } : result;
-    // });
-
     router.post(`/chapters/getListByCourseId`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = (await getApi(ctx, next)).data;
