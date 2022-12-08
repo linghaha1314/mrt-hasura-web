@@ -5,6 +5,7 @@ hasura-dist.*
 hasura-dist
 attachs
 frontend
+mobile
 
 # local env files
 .env.local

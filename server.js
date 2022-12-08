@@ -1,7 +1,7 @@
 const Koa = require('koa');
 const app = new Koa();
 const path = require('path');
-const static = require('koa-static');
+const static = require('./utils/koa-static');
 const Router = require('koa-router');
 const bodyParser = require('koa-bodyparser');
 const session = require('koa-session');
@@ -35,7 +35,7 @@ try {
 
 
 //应用静态资源
-app.use(static(path.join(__dirname, staticPath)));
+app.use(static(path.join(__dirname, staticPath), {mobile: './mobile'}));
 //数据处理
 app.use(bodyParser());
 app.use(cors());
