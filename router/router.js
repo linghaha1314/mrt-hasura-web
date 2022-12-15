@@ -946,6 +946,7 @@ module.exports = (router) => {
 
                 }
                 const result = await getApi(cc);
+                console.log('---课程数据', result);
                 if (result['completedChapterList'].length === result['chapterList'].length) {
                     //修改观看课程的状态；生成一个证书！人员名+课程名+帐号；把文件链接存储到得分表
                     await pool.query(`update kb_watch_record set course_completed=true where course_id = $1`, [ctx.request.body['courseId']]);
@@ -1114,6 +1115,7 @@ from kb_courses c
     });
 
     router.post('/watchRecord/getStaffWatchListByPage', async (ctx) => {
+        ctx.request.body['staffId'] = ctx.request.body.where.staff_id._eq || null;
         const data = await getApi(ctx);
         const list = [];
         data.list.forEach(res => {
@@ -1129,7 +1131,6 @@ from kb_courses c
                     }
                 })
             }
-            console.log('completed', completed)
             obj.completedRate = Math.floor((completed / len) * 100)
             list.push(obj)
         })
