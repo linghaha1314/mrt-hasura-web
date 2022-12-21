@@ -595,7 +595,7 @@ module.exports = (router) => {
             res.completedRate = 0;
         });
         ctx.body = {
-            list, success: true, msg: '查询成功！'
+            list: list.sort((a, b) => b.studyTimeNum - a.studyTimeNum), success: true, msg: '查询成功！'
         }
     })
 

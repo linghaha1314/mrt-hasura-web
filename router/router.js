@@ -410,10 +410,12 @@ module.exports = (router) => {
     });
 
     router.get(`/convertVideo`, async (ctx, next) => {
-        let url = encodeURIComponent(Buffer.from(ctx.query.url).toString('base64'));
-        url = encodeURIComponent(Buffer.from('/attachs/3.1（吕雁）研究生开学第一课——喝彩奥运，志高行远，拼搏向未来2022.2.26-20220810100420.pptx').toString('base64'));
+        const url = encodeURIComponent(Buffer.from(ctx.query.url).toString('base64'));
+        // url = encodeURIComponent(Buffer.from('/attachs/3.1（吕雁）研究生开学第一课——喝彩奥运，志高行远，拼搏向未来2022.2.26-20220810100420.pptx').toString('base64'));
         ctx.body = await request({
-            method: ctx.method, url: `http://127.0.0.1:7001/viewVideo?url=${url}&time=${ctx.query.time}`, json: true
+            method: ctx.method,
+            url: `http://127.0.0.1:7001/viewVideo?url=${url}&time=${ctx.query.time || 4}`,
+            json: true
         });
     });
 
@@ -697,6 +699,7 @@ module.exports = (router) => {
                 obj.mustBeCourseList.push(deconstructionData(rr))
             })
             obj.watchRecordList = []
+            obj.todayStudyTime = (obj.todayStudyTime / 60 / 60).toFixed(1) || 0.01
             obj.watchRecords.nodes.forEach(rr => {
                 obj.watchRecordList.push(deconstructionData(rr));
             })
@@ -771,6 +774,47 @@ module.exports = (router) => {
         if (list) {
             ctx.body = {
                 list: list, total: deconstructionData(data['totalData']).total, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    });
+
+    router.post(`/todayStudy/getDateRangeData`, async (ctx) => {
+        const data = await getApi(ctx);
+        const result = deconstructionData(data.data)
+        result.studyTime = (result.studyTime / 60 / 60).toFixed(1) || 0.01
+        const obj = {
+            timeList: [], staffList: [], courseList: [], studyTimeList: []
+        }
+        if (result.nodes.length > 0) {
+            let time = (result.nodes[0]['study_time'] || 0);
+            let lastData = result.nodes[0]
+            obj.timeList.push(lastData.date)
+            let everyDateStaff = new Set([lastData.staff_id])
+            let everyDateCourse = new Set([lastData.course_id])
+            result.nodes.forEach(res => {
+                if (res.date === lastData.date) {
+                    time += (res['study_time'] || 0)
+                    everyDateStaff.add(res.staff_id)
+                    everyDateCourse.add(res.course_id)
+                } else {
+                    obj.timeList.push(res.date)
+                    obj.staffList.push(everyDateStaff.size)
+                    obj.courseList.push(everyDateCourse.size)
+                    obj.studyTimeList.push((time / 60 / 60).toFixed(1) || 0.01)
+                    lastData = res
+                    time = 0;
+                    everyDateStaff = new Set([lastData.staff_id]);
+                    everyDateCourse = new Set([lastData.course_id]);
+                }
+            })
+        }
+        if (data) {
+            ctx.body = {
+                data: {...result, ...obj}, success: true, msg: '查询成功！'
             }
             return;
         }
