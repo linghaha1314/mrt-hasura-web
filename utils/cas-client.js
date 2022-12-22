@@ -50,13 +50,13 @@ module.exports = (function () {
         const tgc = ctx.cookies.get('TGC');
         const ticket = ctx.request.query['ticket'];
         if (!isEmpty(tgc) && !ctx.session.validate) {
-            ctx.redirect(`${options.cas_url}${options.cas_login}?service=${options.service_url}`);
+            ctx.redirect(`${options.cas_url}${options.cas_login}?service=http://${ctx.host}`);
         }
     };
 
     CasClient.prototype.logout = async function (ctx, options, next) {
         if (ctx.request.path === options.cas_logout) {
-            ctx.redirect(`${options.cas_url}${options.cas_logout}?service=${options.service_url}`);
+            ctx.redirect(`${options.cas_url}${options.cas_logout}?service=http://${ctx.host}`);
         }
     };
 
@@ -66,7 +66,7 @@ module.exports = (function () {
             if (!isEmpty(ticket)) {
                 const response = await request({
                     method: 'GET',
-                    url: `${options.cas_url}${options.cas_validate}?ticket=${ticket}&service=${options.service_url}`,
+                    url: `${options.cas_url}${options.cas_validate}?ticket=${ticket}&service=http://${ctx.host}`,
                     headers: {
                         "content-type": 'text/html'
                     }
