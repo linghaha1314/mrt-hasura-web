@@ -410,10 +410,12 @@ module.exports = (router) => {
     });
 
     router.get(`/convertVideo`, async (ctx, next) => {
-        let url = encodeURIComponent(Buffer.from(ctx.query.url).toString('base64'));
-        url = encodeURIComponent(Buffer.from('/attachs/3.1（吕雁）研究生开学第一课——喝彩奥运，志高行远，拼搏向未来2022.2.26-20220810100420.pptx').toString('base64'));
+        const url = encodeURIComponent(Buffer.from(ctx.query.url).toString('base64'));
+        // url = encodeURIComponent(Buffer.from('/attachs/3.1（吕雁）研究生开学第一课——喝彩奥运，志高行远，拼搏向未来2022.2.26-20220810100420.pptx').toString('base64'));
         ctx.body = await request({
-            method: ctx.method, url: `http://127.0.0.1:7001/viewVideo?url=${url}&time=${ctx.query.time}`, json: true
+            method: ctx.method,
+            url: `http://127.0.0.1:7001/viewVideo?url=${url}&time=${ctx.query.time || 4}`,
+            json: true
         });
     });
 
@@ -697,6 +699,7 @@ module.exports = (router) => {
                 obj.mustBeCourseList.push(deconstructionData(rr))
             })
             obj.watchRecordList = []
+            obj.todayStudyTime = (obj.todayStudyTime / 60 / 60).toFixed(1) || 0.01
             obj.watchRecords.nodes.forEach(rr => {
                 obj.watchRecordList.push(deconstructionData(rr));
             })
@@ -779,6 +782,47 @@ module.exports = (router) => {
         }
     });
 
+    router.post(`/todayStudy/getDateRangeData`, async (ctx) => {
+        const data = await getApi(ctx);
+        const result = deconstructionData(data.data)
+        result.studyTime = (result.studyTime / 60 / 60).toFixed(1) || 0.01
+        const obj = {
+            timeList: [], staffList: [], courseList: [], studyTimeList: []
+        }
+        if (result.nodes.length > 0) {
+            let time = (result.nodes[0]['study_time'] || 0);
+            let lastData = result.nodes[0]
+            obj.timeList.push(lastData.date)
+            let everyDateStaff = new Set([lastData.staff_id])
+            let everyDateCourse = new Set([lastData.course_id])
+            result.nodes.forEach(res => {
+                if (res.date === lastData.date) {
+                    time += (res['study_time'] || 0)
+                    everyDateStaff.add(res.staff_id)
+                    everyDateCourse.add(res.course_id)
+                } else {
+                    obj.timeList.push(res.date)
+                    obj.staffList.push(everyDateStaff.size)
+                    obj.courseList.push(everyDateCourse.size)
+                    obj.studyTimeList.push((time / 60 / 60).toFixed(1) || 0.01)
+                    lastData = res
+                    time = 0;
+                    everyDateStaff = new Set([lastData.staff_id]);
+                    everyDateCourse = new Set([lastData.course_id]);
+                }
+            })
+        }
+        if (data) {
+            ctx.body = {
+                data: {...result, ...obj}, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    });
+
     router.get(`/homeColumns/getDataList`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
         const data = await getApi(ctx);
@@ -830,18 +874,6 @@ module.exports = (router) => {
             data: c.data, text: c.text, success: true, msg: '查询成功！'
         }
     });
-
-    //client接口
-    // router.post('/client/login', async (ctx) => {
-    //     const result = await validLogin(ctx.request.body);
-    //     ctx.body = result.success ? {
-    //         ...result, token: jsonwebtoken.sign({
-    //             data: {
-    //                 id: result.id, name: ctx.request.body.username
-    //             }, exp: Math.floor(Date.now() / 1000) + (60 * 60), // 60 seconds * 60 minutes = 1 hour
-    //         }, 'kbds random secret'),
-    //     } : result;
-    // });
 
     router.post(`/chapters/getListByCourseId`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
@@ -958,6 +990,7 @@ module.exports = (router) => {
 
                 }
                 const result = await getApi(cc);
+                console.log('---课程数据', result);
                 if (result['completedChapterList'].length === result['chapterList'].length) {
                     //修改观看课程的状态；生成一个证书！人员名+课程名+帐号；把文件链接存储到得分表
                     await pool.query(`update kb_watch_record set course_completed=true where course_id = $1`, [ctx.request.body['courseId']]);
@@ -1126,6 +1159,7 @@ from kb_courses c
     });
 
     router.post('/watchRecord/getStaffWatchListByPage', async (ctx) => {
+        ctx.request.body['staffId'] = ctx.request.body.where.staff_id._eq || null;
         const data = await getApi(ctx);
         const list = [];
         data.list.forEach(res => {
@@ -1141,7 +1175,6 @@ from kb_courses c
                     }
                 })
             }
-            console.log('completed', completed)
             obj.completedRate = Math.floor((completed / len) * 100)
             list.push(obj)
         })
