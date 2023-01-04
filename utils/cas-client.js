@@ -32,9 +32,14 @@ module.exports = (function () {
             }
         } else {
             if (ctx.session.user == null) {
-                ctx.session.validate = false;
+                if (!isEmpty(tgc) && cache.get(tgc) != null) {
+                    ctx.session.user = cache.get(tgc);
+                    ctx.session.validate = true;
+                } else {
+                    ctx.session.validate = false;
+                    await CasClient.prototype.validate(ctx, options, next);
+                }
             }
-            await CasClient.prototype.validate(ctx, options, next);
         }
         await CasClient.prototype.logout(ctx, options, next);
         await CasClient.prototype.validateTgc(ctx, options, next);
@@ -93,7 +98,7 @@ module.exports = (function () {
                     ctx.session.user = d;
                     ctx.session.validate = true;
                     const tgc = ctx.cookies.get('TGC');
-                    cache.put(tgc, d.id);
+                    cache.put(tgc, d);
                 } else {
                     await CasClient.prototype.login(ctx, options, next);
                 }
