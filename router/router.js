@@ -411,12 +411,14 @@ module.exports = (router) => {
 
     router.get(`/convertVideo`, async (ctx, next) => {
         const url = encodeURIComponent(Buffer.from(ctx.query.url).toString('base64'));
-        // url = encodeURIComponent(Buffer.from('/attachs/3.1（吕雁）研究生开学第一课——喝彩奥运，志高行远，拼搏向未来2022.2.26-20220810100420.pptx').toString('base64'));
         ctx.body = await request({
             method: ctx.method,
             url: `http://127.0.0.1:7001/viewVideo?url=${url}&time=${ctx.query.time || 4}`,
             json: true
         });
+        // ctx.body = {
+        //     url: '/attachs/1652493115904511-20220720172122-20221206154502.mp4', json: true, success: true
+        // }
     });
 
     router.post(`/courseVerify/update`, async (ctx, next) => {
@@ -749,11 +751,6 @@ module.exports = (router) => {
             obj.compulsoryStaffs = deconstructionArr(obj.compulsoryStaffs);
             obj.watchRecords = deconstructionArr(obj.watchRecords);
             obj.compulsoryStaffs.forEach(ii => {
-                // if (ii[0].courseCompleted === undefined || !ii[0].courseCompleted) {
-                //     console.log('--->>2222', ii.courseCompleted);
-                //     notCompleteStaffNum++;
-                // }
-                // compulsoryStaffs.push({...ii, courseCompleted: ii[0].courseCompleted});
                 compulsoryStaffs.push(ii);
             })
             obj.compulsoryStaffs = compulsoryStaffs;
@@ -880,16 +877,15 @@ module.exports = (router) => {
         const data = (await getApi(ctx, next)).data;
         if (ctx.request.body['where']) {  //登录才会查询播放记录
             data.list.forEach(res => {
-                res['recordChapter'].forEach(rr => {
-                    if (rr.completed) {
-                        res.completed = true;
-                        res.completedRate = 100;
-                    } else {
-                        res.completedRate = Math.floor(rr.studyTime / rr.totalTime)
-                        console.log(rr, '-->>??', res.completedRate)
-                        res.studyTime = rr.studyTime
-                    }
-                })
+                res.completed = false;
+                if (res['recordChapter'].length === 0) {
+                    res.completedRate = 0;
+                } else if (res['recordChapter'].length > 0 && res['recordChapter'][0].isRealCompleted) {
+                    res.completed = true;
+                    res.completedRate = 100;
+                } else {
+                    res.completedRate = (res.recordChapter[0].studyTime / res.recordChapter[0].totalTime * 100).toFixed(1)
+                }
             })
         }
         const parentData = data.list.filter(res => !res.parentId);
@@ -990,7 +986,6 @@ module.exports = (router) => {
 
                 }
                 const result = await getApi(cc);
-                console.log('---课程数据', result);
                 if (result['completedChapterList'].length === result['chapterList'].length) {
                     //修改观看课程的状态；生成一个证书！人员名+课程名+帐号；把文件链接存储到得分表
                     await pool.query(`update kb_watch_record set course_completed=true where course_id = $1`, [ctx.request.body['courseId']]);
@@ -1146,6 +1141,15 @@ from kb_courses c
         const result = deconstructionData(data.data[0]);
         let classData = {};
         let columnData = {};
+        let flag = false;
+        if (result.chapters && result.chapters.length > 0) {
+            result.chapters.forEach(res => {
+                if (!flag && res['recordChapter'] && res['recordChapter'].length > 0 && res['recordChapter'][0].completed) {
+                    result.courseCompleted = true;
+                    flag = true;
+                }
+            })
+        }
         if (result.classList.length > 0) {
             classData = result.classList[0]['courseTypeData'];
         }
@@ -1153,6 +1157,8 @@ from kb_courses c
             columnData = result.columnList[0]['homeColumnData'];
         }
         const avgScore = (deconstructionData(data.avgData).avgScore || 5 / 1).toFixed(1)
+        console.log('进度？？？---', result);
+        //设置每个章节的进度,如果是完成就是100，否则算百分比，小于1默认未观看
         ctx.body = {
             data: {...result, avgScore}, columnData, classData, total: data.total, success: true, msg: '查询成功！'
         }
