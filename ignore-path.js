@@ -1,6 +1,7 @@
 const ignoreUrl = [
     /\/public/,
     /\/login/,
+    /\/dingLogin/,
     /\/attachs/,
     /\/chapters.*$/,
     /\/ps.*$/,

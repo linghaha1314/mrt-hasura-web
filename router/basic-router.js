@@ -14,12 +14,13 @@ const {
     refUrl,
     dictionaryDataByTypeCode,
     validLogin,
+    getUserByUsername,
     getApi,
     deconstructionData,
     DateToStr,
     invertCtxData
 } = require("../server/user");
-const request = require("request");
+const request = require("request-promise");
 const CryptoJS = require("crypto-js");
 const jsonwebtoken = require("jsonwebtoken");
 const path = require("path");
@@ -292,6 +293,24 @@ module.exports = (router) => {
                 }, exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7), // 60 seconds * 60 minutes = 1 hour
             }, 'kbds random secret'),
         } : result;
+    });
+
+    router.post('/dingLogin', async (ctx) => {
+        const result = await request.post(`http://127.0.0.1:8090/login?authCode=${ctx.request.body.authCode}`);
+        const r = JSON.parse(result);
+        const username = r.result.job_number;
+        const user = await getUserByUsername(username);
+        if (user == null) {
+            ctx.body = {success: false};
+            return;
+        }
+        ctx.body = {
+            id: user.id, msg: '钉钉免登录', success: true, token: jsonwebtoken.sign({
+                data: {
+                    id: user.id, name: r.result.job_number
+                }, exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7), // 60 seconds * 60 minutes = 1 hour
+            }, 'kbds random secret')
+        };
     });
 
     router.get('/getUserInfo', async (ctx, next) => {

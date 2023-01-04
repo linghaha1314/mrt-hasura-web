@@ -100,6 +100,16 @@ async function validLogin(loginObj) {
     return result;
 }
 
+
+async function getUserByUsername(username) {
+    // 连续登录五次错误就锁住这个帐号；登录错误就记录一次；
+    const user = await pool.query('SELECT * FROM kb_user where username=$1', [username]);
+    if(user.rows != null && user.rows.length > 0) {
+        return user.rows[0];
+    }
+    return null;
+}
+
 //查
 async function getListByPage(ctx) {
     const obj = JSON.parse(JSON.stringify(ctx.request.query));
@@ -506,6 +516,7 @@ module.exports = {
     refUrl,
     deleteById,
     validLogin,
+    getUserByUsername,
     getApi,
     getList,
     getListByPage,
