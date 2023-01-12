@@ -315,6 +315,7 @@ module.exports = (router) => {
             request: {
                 url: '/examPaper/create', body: {
                     name: ctx.request.body.name,
+                    staffId: ctx.request.body.staffId,
                     totalScore: ctx.request.body.totalScore,
                     number: ctx.request.body.number
                 },
@@ -344,17 +345,25 @@ module.exports = (router) => {
             }
             const paperTitleResult = await create(examPaperTitle);
             //在创建选项；
+            //starScore没得选项
             for (const dd of res.options) {
                 const index = res.options.indexOf(dd);
                 const examOptions = {
                     request: {
                         url: '/examOptions/create', body: {
-                            name: dd.name, titleId: titleResult.rows[0].id, isRight: dd.isRight, sequence: index + 1
+                            name: dd.name,
+                            score: dd.score,
+                            titleId: titleResult.rows[0].id,
+                            isRight: dd.isRight,
+                            sequence: index + 1
                         },
                     }
                 }
                 const optionResult = await create(examOptions);
             }
+        }
+        ctx.body = {
+            success: true, msg: '成功！'
         }
     });
 
@@ -753,13 +762,14 @@ module.exports = (router) => {
             obj.compulsoryStaffs.forEach(ii => {
                 compulsoryStaffs.push(ii);
             })
+            obj.completeStaffList = obj.completeStaffList.map(res => deconstructionData(res));
+            obj.notCompleteStaffList = obj.notCompleteStaffList.map(res => deconstructionData(res));
             obj.compulsoryStaffs = compulsoryStaffs;
             obj.watchRecords.forEach(ii => {
                 watchStaffs.push({...ii, courseCompleted: ii[0].courseCompleted});
             })
             delete obj.watchRecords
             obj['watchStaffs'] = watchStaffs;
-            console.log(obj)
             obj['actualStudyNum'] = watchStaffs.length;
             obj['expectStudyNum'] = obj.compulsoryStaffs.length;
             obj['notCompleteStaffNum'] = notCompleteStaffNum;

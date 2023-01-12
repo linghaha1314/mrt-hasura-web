@@ -20,6 +20,8 @@ const ignoreUrl = [
     /\/course.*$/,
     /\/homeColumns.*$/,
     /\/msgPush.*$/,
-    /\/user.*$/
+    /\/user.*$/,
+    /\/examPaper\/getDataById$/,
+    /\/exam\/getQuestionList$/
 ];
 module.exports = ignoreUrl
