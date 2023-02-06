@@ -643,6 +643,51 @@ module.exports = (router) => {
             }, success: true, msg: '查询成功！'
         }
     })
+
+    router.post('/examAnswer/getDataListByPage', async (ctx) => {
+        const result = deconstructionData(await getApi(ctx))
+        const list = result.list.map(rr => {
+            const obj = deconstructionData(rr);
+            obj.evaluationNum = obj.coursesEvaluation.length
+            let totalScore = 0;
+            obj.coursesEvaluation = obj.coursesEvaluation.map(dd => {
+                totalScore += Number(deconstructionData(dd).score || 0)
+                return deconstructionData(dd)
+            })
+            obj.avgScore = (totalScore / obj.coursesEvaluation.length).toFixed(1)
+            obj.fiveScore = (obj.avgScore * 5 / 100).toFixed(1)
+            return obj;
+        });
+        ctx.body = {
+            list, total: result.total, success: true, msg: '查询成功！'
+        }
+    })
+
+    router.post('/examPaper/getDataListByPage', async (ctx) => {
+        const result = deconstructionData(await getApi(ctx))
+        const list = result.list.map(rr => deconstructionData(rr));
+        ctx.body = {
+            list, total: result.total, success: true, msg: '查询成功！'
+        }
+    })
+
+    router.post('/examAnswer/getListByCourseId', async (ctx) => {
+        const result = deconstructionData(await getApi(ctx))
+        const list = result.list.map(rr => {
+            const obj = deconstructionData(rr);
+            obj.questions = obj.questions.map((dd, index) => {
+                dd = deconstructionData(dd);
+                obj['value' + (index + 1)] = dd.type === 'text' ? dd.resultOption : dd.getScore;
+                dd.resultOption = dd.type === 'text' ? dd.resultOption : JSON.parse(dd.resultOption);
+                return dd
+            })
+            return obj;
+        });
+        ctx.body = {
+            list, total: result.total, success: true, msg: '查询成功！'
+        }
+    })
+
 }
 
 

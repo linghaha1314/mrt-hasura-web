@@ -311,57 +311,101 @@ module.exports = (router) => {
 
     router.post(`/exam/insert`, async (ctx) => {
         //先创建试卷；
-        const examPaper = {
-            request: {
-                url: '/examPaper/create', body: {
-                    name: ctx.request.body.name,
-                    staffId: ctx.request.body.staffId,
-                    totalScore: ctx.request.body.totalScore,
-                    number: ctx.request.body.number
-                },
-            }
-        }
-        const paperResult = await create(examPaper);
+        const bodyData = ctx.request.body;
+        const paperResult = await create(invertCtxData({
+            name: bodyData.name, staffId: bodyData.staffId, totalScore: bodyData.totalScore, number: bodyData.number
+        }, '/examPaper/create'));
         //再创建题目；
         for (const res of ctx.request.body['questionList']) {
-            const examTitle = {
-                request: {
-                    url: '/examTitle/create', body: {
-                        name: res.name, type: res.type, score: res.score, sequence: res.sequence,
-                    },
-                }
-            }
-            const titleResult = await create(examTitle);
+            const titleResult = await create(invertCtxData({
+                name: res.name, type: res.type, score: res.score, sequence: res.sequence
+            }, '/examTitle/create'));
             //创建题目后，要创建试卷和试题的联合表
-            const examPaperTitle = {
-                request: {
-                    url: '/examPaperTitle/create', body: {
-                        paperId: paperResult.rows[0].id,
-                        titleId: titleResult.rows[0].id,
-                        score: res.score,
-                        sequence: res.sequence
-                    },
-                }
-            }
-            const paperTitleResult = await create(examPaperTitle);
-            //在创建选项；
-            //starScore没得选项
+            const paperTitleResult = await create(invertCtxData({
+                paperId: paperResult.rows[0].id,
+                titleId: titleResult.rows[0].id,
+                score: res.score,
+                sequence: res.sequence
+            }, '/examPaperTitle/create'));
+            //在创建选项 starScore没得选项
             for (const dd of res.options) {
                 const index = res.options.indexOf(dd);
-                const examOptions = {
-                    request: {
-                        url: '/examOptions/create', body: {
-                            name: dd.name,
-                            score: dd.score,
-                            titleId: titleResult.rows[0].id,
-                            isRight: dd.isRight,
-                            sequence: index + 1
-                        },
-                    }
-                }
-                const optionResult = await create(examOptions);
+                const optionResult = await create(invertCtxData({
+                    name: dd.name,
+                    score: dd.score,
+                    titleId: titleResult.rows[0].id,
+                    isRight: dd.isRight,
+                    sequence: index + 1
+                }, '/examOptions/create'));
             }
         }
+        ctx.body = {
+            success: true, msg: '成功！'
+        }
+    });
+
+    router.post(`/exam/update`, async (ctx) => {
+        //修改试卷的相关信息examPaper
+        const bodyData = ctx.request.body;
+        await updateById(invertCtxData({
+            id: bodyData.id, name: bodyData.name, totalScore: bodyData.totalScore, number: bodyData.number
+        }, '/examPaper/updateById'));
+        //删除一切的问题关联；重新创建所有的question
+        await deleteById(invertCtxData({
+            paperId: bodyData.id,
+        }, '/examPaperTitle/deleteById'));
+        for (const res of ctx.request.body['questionList']) {
+            await deleteById(invertCtxData({
+                titleId: res.id
+            }, '/examOptions/deleteById'));
+            await deleteById(invertCtxData({
+                id: res.id
+            }, '/examTitle/deleteById'));
+        }
+        //再创建题目；
+        for (const res of ctx.request.body['questionList']) {
+            const titleResult = await create(invertCtxData({
+                name: res.name, type: res.type, score: res.score, sequence: res.sequence
+            }, '/examTitle/create'));
+            //创建题目后，要创建试卷和试题的联合表
+            const paperTitleResult = await create(invertCtxData({
+                paperId: bodyData.id, titleId: titleResult.rows[0].id, score: res.score, sequence: res.sequence
+            }, '/examPaperTitle/create'));
+            //在创建选项 starScore没得选项
+            for (const dd of res.options) {
+                const index = res.options.indexOf(dd);
+                const optionResult = await create(invertCtxData({
+                    name: dd.name,
+                    score: dd.score,
+                    titleId: titleResult.rows[0].id,
+                    isRight: dd.isRight,
+                    sequence: index + 1
+                }, '/examOptions/create'));
+            }
+        }
+        ctx.body = {
+            success: true, msg: '成功！'
+        }
+    });
+
+    router.post(`/exam/delete`, async (ctx) => {
+        //修改试卷的相关信息examPaper
+        const bodyData = ctx.request.body;
+        //删除一切的问题关联；重新创建所有的question
+        // await deleteById(invertCtxData({
+        //     paperId: bodyData.id,
+        // }, '/examPaperTitle/deleteById'));
+        // for (const res of ctx.request.body['questionList']) {
+        //     await deleteById(invertCtxData({
+        //         titleId: res.id
+        //     }, '/examOptions/deleteById'));
+        //     await deleteById(invertCtxData({
+        //         id: res.id
+        //     }, '/examTitle/deleteById'));
+        // }
+        await deleteById(invertCtxData({
+            id: bodyData.id
+        }, '/examPaper/deleteById'));
         ctx.body = {
             success: true, msg: '成功！'
         }
@@ -417,6 +461,16 @@ module.exports = (router) => {
             success: false, msg: '失败！'
         }
     });
+
+    router.post('/getPaperId/byDataCode', async (ctx) => {
+        const result = await getApi(ctx)
+        ctx.body = {
+            data: result.list.length > 0 ? deconstructionData(result.list[0]) : {},
+            total: result.total,
+            success: true,
+            msg: '查询成功！'
+        }
+    })
 
     router.get(`/convertVideo`, async (ctx, next) => {
         const url = encodeURIComponent(Buffer.from(ctx.query.url).toString('base64'));
@@ -961,7 +1015,7 @@ module.exports = (router) => {
         const data = await getListByPage(selectIsHasCtx);
         if (data.list.length === 0) {  //没有观看记录
             await create(ctx, next);
-        } else if (data.list[0].completed) {  //有观看记录，但是已经看完了，需要新增一次看课记录
+        } else if (data.list[0].completed) {  //有观看记录，但是已经看完了，需要新增一次看课记录????
             const res = data.list[0]
             if (res.studyTime + 5 >= res['totalTime'] && ctx.request.body.studyTime === 1) {
                 ctx.request.body.courseCompleted = res.courseCompleted
@@ -998,22 +1052,25 @@ module.exports = (router) => {
                 const result = await getApi(cc);
                 if (result['completedChapterList'].length === result['chapterList'].length) {
                     //修改观看课程的状态；生成一个证书！人员名+课程名+帐号；把文件链接存储到得分表
+                    console.log('ZHIXINAG', result, nameData);
                     await pool.query(`update kb_watch_record set course_completed=true where course_id = $1`, [ctx.request.body['courseId']]);
                     //学分记录;应该避免重复录入数据！
                     //生成证书，并存储在数据库中；
+                    const date = formatTime('', 'YY-MM-DD-HH:mm:ss')
+                    console.log('date---', formatTime(''))
                     await newCert({
                         name: nameData.staffName || '',
                         title: nameData.courseName || '',
                         typeName: nameData.majorName || '',
                         date: formatTime('')
-                    }, nameData.staffName + nameData.courseName + '.doc')
+                    }, nameData.staffName + nameData.courseName + date + '.doc')
                     const createStaffCreditsCtx = {
                         request: {
                             body: {
                                 staffId: ctx.request.body.staffId,
                                 courseId: ctx.request.body.courseId,
                                 credits: result['courseData'][0].credits || 0,
-                                path: '/attachs/' + nameData.staffName + nameData.courseName + '.doc'
+                                path: '/attachs/' + nameData.staffName + nameData.courseName + date + '.doc'
                             }, url: '/staffCredits/create'
                         }
                     }
@@ -1166,11 +1223,9 @@ from kb_courses c
         if (result.columnList.length > 0) {
             columnData = result.columnList[0]['homeColumnData'];
         }
-        const avgScore = (deconstructionData(data.avgData).avgScore || 5 / 1).toFixed(1)
-        console.log('进度？？？---', result);
         //设置每个章节的进度,如果是完成就是100，否则算百分比，小于1默认未观看
         ctx.body = {
-            data: {...result, avgScore}, columnData, classData, total: data.total, success: true, msg: '查询成功！'
+            data: {...result}, columnData, classData, total: data.total, success: true, msg: '查询成功！'
         }
     });
 
@@ -1196,6 +1251,27 @@ from kb_courses c
         })
         ctx.body = {
             list, total: data.total.aggregate.count, success: true, msg: '查询成功！'
+        }
+    })
+
+    //评价提交
+    router.post(`/examAnswer/insert`, async (ctx, next) => {
+        const data = ctx.request.body
+        const createStaff = await create(invertCtxData({
+            courseId: data.courseId, staffId: data.staffId, score: data.score, paperId: data.paperId
+        }, '/examAnswerStaffs/create'))
+        console.log('===>>>???', createStaff)
+        for (const rr of data.questions) {
+            const obj = {
+                answerId: createStaff.rows[0].id,
+                questionId: rr.id,
+                getScore: rr.type === 'text' ? rr.score : rr.result,
+                resultOption: rr.type === 'text' ? rr.result : JSON.stringify(rr.resultOption)
+            }
+            await create(invertCtxData(obj, '/examAnswerQuestions/create'))
+            ctx.body = {
+                success: true, msg: '提交成功！'
+            }
         }
     })
 

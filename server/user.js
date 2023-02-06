@@ -104,7 +104,7 @@ async function validLogin(loginObj) {
 async function getUserByUsername(username) {
     // 连续登录五次错误就锁住这个帐号；登录错误就记录一次；
     const user = await pool.query('SELECT * FROM kb_user where username=$1', [username]);
-    if(user.rows != null && user.rows.length > 0) {
+    if (user.rows != null && user.rows.length > 0) {
         return user.rows[0];
     }
     return null;
@@ -253,7 +253,7 @@ async function updateById(ctx, next) {
     const currentRow = await pool.query(`
     select * from  ${getTableName(ctx.request.url)}
     where id = $1`, [ctx.request.body.id]);
-    console.log('currentRow', ctx.request.body.id, `update  ${getTableName(ctx.request.url)} set ${columns} where id = $1`, currentRow)
+    // console.log('currentRow', ctx.request.body.id, `update  ${getTableName(ctx.request.url)} set ${columns} where id = $1`, currentRow)
     return covertColumnByType(currentRow.fields, 2)
 }
 
@@ -309,11 +309,7 @@ async function getApi(ctx, next) {
     }
     if (url.indexOf('search') > -1) {
         const arr = url.split('search=');
-        url = arr[0] + `
-    search =
-    %${ctx.request.query.search}
-    %
-    ` + arr[1].replace(/[^&]+/, '')
+        url = arr[0] + `search =%${ctx.request.query.search}%` + arr[1].replace(/[^&]+/, '')
     }
     try {
         ctx.set('X-Response-Url', url);
@@ -343,7 +339,6 @@ async function newCert(renderObj = {}, pathName) {
     const originPath = await getListByPage(invertCtxData({
         sort: 'sequence desc, status desc'
     }, '/cert/getListByPage', 'get'))
-    console.log('---originPath: ', originPath)
     const content = fs.readFileSync(path.resolve(__dirname, `..${originPath.list[0].path}`), "binary");
 
     const zip = new PizZip(content);
