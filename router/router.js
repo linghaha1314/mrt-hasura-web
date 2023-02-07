@@ -1050,31 +1050,32 @@ module.exports = (router) => {
 
                 }
                 const result = await getApi(cc);
+                //每一个章节完成的时候都要验证一遍
                 if (result['completedChapterList'].length === result['chapterList'].length) {
                     //修改观看课程的状态；生成一个证书！人员名+课程名+帐号；把文件链接存储到得分表
-                    console.log('ZHIXINAG', result, nameData);
                     await pool.query(`update kb_watch_record set course_completed=true where course_id = $1`, [ctx.request.body['courseId']]);
-                    //学分记录;应该避免重复录入数据！
-                    //生成证书，并存储在数据库中；
-                    const date = formatTime('', 'YY-MM-DD-HH:mm:ss')
-                    console.log('date---', formatTime(''))
-                    await newCert({
-                        name: nameData.staffName || '',
-                        title: nameData.courseName || '',
-                        typeName: nameData.majorName || '',
-                        date: formatTime('')
-                    }, nameData.staffName + nameData.courseName + date + '.doc')
-                    const createStaffCreditsCtx = {
-                        request: {
-                            body: {
-                                staffId: ctx.request.body.staffId,
-                                courseId: ctx.request.body.courseId,
-                                credits: result['courseData'][0].credits || 0,
-                                path: '/attachs/' + nameData.staffName + nameData.courseName + date + '.doc'
-                            }, url: '/staffCredits/create'
+                    //如果已经存在courseId和staffId就已经存在；就不在生成证书和记录学分；
+                    const credits = await getApi(invertCtxData({
+                        where: {
+                            staff_id: {_eq: ctx.request.body.staffId}, course_id: {_eq: ctx.request.body.courseId}
                         }
+                    }, '/staffCredits/getDataByStaffId', 'post', 'getApi'))
+                    console.log('--->>>credits', credits, (!credits.list || credits.length === 0));
+                    if (!credits.list || credits.length === 0) {
+                        const date = formatTime('', 'YY-MM-DD-hh:mm:ss')
+                        await newCert({
+                            name: nameData.staffName || '',
+                            title: nameData.courseName || '',
+                            typeName: nameData.majorName || '',
+                            date: formatTime('')
+                        }, nameData.staffName + nameData.courseName + date + '.doc')
+                        const staffCredits = await create(invertCtxData({
+                            staffId: ctx.request.body.staffId,
+                            courseId: ctx.request.body.courseId,
+                            credits: result['courseData'][0].credits || 0,
+                            path: '/attachs/' + nameData.staffName + nameData.courseName + date + '.doc'
+                        }, '/staffCredits/create'));
                     }
-                    const staffCredits = await create(createStaffCreditsCtx);
                 }
             } else {
                 await updateById(ctx, next);

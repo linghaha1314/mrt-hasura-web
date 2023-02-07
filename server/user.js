@@ -339,7 +339,9 @@ async function newCert(renderObj = {}, pathName) {
     const originPath = await getListByPage(invertCtxData({
         sort: 'sequence desc, status desc'
     }, '/cert/getListByPage', 'get'))
-    const content = fs.readFileSync(path.resolve(__dirname, `..${originPath.list[0].path}`), "binary");
+    const url = originPath.list[0].path;
+    console.log('----标准证书', url);
+    const content = fs.readFileSync(path.resolve(__dirname, `..${url}`), "binary");
 
     const zip = new PizZip(content);
 
