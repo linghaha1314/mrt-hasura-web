@@ -35,10 +35,14 @@ function serve (root, opts) {
 
             if (ctx.method === 'HEAD' || ctx.method === 'GET') {
                 try {
-                    if(ctx.headers['user-agent'].indexOf('Mobile') > -1) {
+                    if (ctx.headers['user-agent'].indexOf('Mobile') > -1) {
                         opts.root = opts.mobile
                     } else {
-                        opts.root = opts.pc
+                        if (ctx.host == '117.159.24.46:3002') {
+                            opts.root = "./portal"
+                        } else {
+                            opts.root = opts.pc
+                        }
                     }
                     done = await send(ctx, ctx.path, opts)
                 } catch (err) {
