@@ -1060,8 +1060,8 @@ module.exports = (router) => {
                             staff_id: {_eq: ctx.request.body.staffId}, course_id: {_eq: ctx.request.body.courseId}
                         }
                     }, '/staffCredits/getDataByStaffId', 'post', 'getApi'))
-                    console.log('--->>>credits', credits, (!credits.list || credits.length === 0));
-                    if (!credits.list || credits.length === 0) {
+                    console.log('--->>>credits', credits);
+                    if (credits.list.length === 0) {
                         const date = formatTime('', 'YY-MM-DD-hh:mm:ss')
                         await newCert({
                             name: nameData.staffName || '',
