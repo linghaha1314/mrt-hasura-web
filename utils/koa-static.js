@@ -38,7 +38,7 @@ function serve (root, opts) {
                     if (ctx.headers['user-agent'].indexOf('Mobile') > -1) {
                         opts.root = opts.mobile
                     } else {
-                        if (ctx.host == '117.159.24.46:3002') {
+                        if (ctx.host == '117.159.24.46:3002' || ctx.host == '172.16.10.53:3002') {
                             opts.root = "./portal"
                         } else {
                             opts.root = opts.pc
