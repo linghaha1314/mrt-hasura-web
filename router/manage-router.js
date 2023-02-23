@@ -681,6 +681,7 @@ module.exports = (router) => {
                 dd.resultOption = dd.type === 'text' ? dd.resultOption : JSON.parse(dd.resultOption);
                 return dd
             })
+            obj.created = formatTime(obj.created, 'YY-MM-DD hh:mm:ss')
             return obj;
         });
         ctx.body = {
