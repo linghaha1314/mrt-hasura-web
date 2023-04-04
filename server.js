@@ -129,6 +129,9 @@ app.use(async (ctx, next) => {
             case 'create':
                 ctx.request.url = '/create'
                 break;
+            case 'createMultiple':
+                ctx.request.url = '/createMultiple'
+                break;
             case 'deleteById':
                 ctx.request.url = '/deleteById'
                 break;
@@ -167,6 +170,9 @@ app.use(async (ctx, next) => {
                 break;
             case 'import':
                 ctx.request.url = '/import'
+                break;
+            case 'verify':
+                ctx.request.url = '/verify'
                 break;
             default:
                 break;

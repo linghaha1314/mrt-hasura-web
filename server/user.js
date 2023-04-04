@@ -192,8 +192,28 @@ async function create(ctx) {
     into  ${getTableName(ctx.request.url)}(${keyList.join(',')})
     VALUES(${params.join(',')}) returning *;
     `;
+    console.log('==>>???///', sql)
     return await pool.query(sql, valueList)
 }
+
+async function createMultiple(ctx) {
+    const list = ctx.request.body.list
+    const columns = Object.keys(list[0]);
+    const keyList = covertColumnByType(columns)
+    const params = [];
+    list.forEach(rr => {
+        const obj = "('" + rr.staffId + "','" + rr.courseId + "')"
+        params.push(obj)
+    })
+    const sql = `
+    insert
+    into  ${getTableName(ctx.request.url)}(${keyList.join(',')})
+    VALUES ${params.join(',')} returning *;
+    `;
+    console.log('==>>???', columns, keyList, sql);
+    return await pool.query(sql)
+}
+
 
 //删
 async function deleteById(ctx, next) {
@@ -214,6 +234,18 @@ async function deleteMultiple(ctx, next) {
     const data = await pool.query(`
     delete from ${getTableName(ctx.request.url)} where id IN (${idStr});`)
     return data
+}
+
+async function verify(ctx, next) {
+    const courseId = "'" + ctx.request.body.courseId + "'"
+    const list = ctx.request.body.list
+    let ids = ''
+    list.forEach((res, index) => {
+        ids += index === 0 ? '\'' + res + '\'' : (',\'' + res + '\'')
+    })
+    const data = await pool.query(`
+    select * from ${getTableName(ctx.request.url)} where course_id=${courseId} and staff_id IN (${ids})`)
+    return data.rows
 }
 
 //多条件删除
@@ -521,9 +553,9 @@ module.exports = {
     formatTime,
     timeToDay,
     newCert,
-    convertColumn,
-    changeDataTree,
+    verify,
     invertCtxData,
+    createMultiple,
     convertRate,
     create,
     DateToStr,

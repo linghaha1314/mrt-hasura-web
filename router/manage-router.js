@@ -3,13 +3,10 @@ const {
     updateById,
     invertCtxData,
     deleteById,
-    getListByPage,
-    convertColumn,
     covertColumnByType,
     create,
     getApi,
     deconstructionData,
-    getMenuTree,
     formatTime,
     timeToDay,
     DateToStr,
@@ -17,6 +14,7 @@ const {
     getDataById
 } = require("../server/user");
 const pool = require("../utils/pool");
+const {body} = require("koa/lib/response");
 module.exports = (router) => {
 
     router.post(`/recommend/createUpdate`, async (ctx) => {
@@ -494,6 +492,54 @@ module.exports = (router) => {
         })
         ctx.body = {
             list, success: true, msg: '查询成功！'
+        }
+    })
+
+    router.post('/staffCompulsoryCourses/selectAll', async (ctx) => {
+        const courseId = ctx.request.body.courseId;
+        await deleteById(invertCtxData({courseId}, '/staffCompulsoryCourses/deleteById'))
+        const staffs = await getApi(invertCtxData({}, '/user/getAll', 'get', 'getApi'))
+        const list = [];
+        staffs.list.forEach(rr => {
+            const obj = "('" + courseId + "','" + rr.id + "','" + true + "')"
+            list.push(obj)
+        })
+        const sql = `insert into kb_staff_compulsory_courses(course_id,staff_id,is_all) VALUES ${list.join(',')}`;
+        const data = await pool.query(sql)
+        ctx.body = {
+            data, success: true, msg: '成功'
+        }
+    })
+
+    //设置指定人员创建:参数（keys:[],courseId:string,list:[]）
+    router.post('/staffCompulsoryCourses/createMulData', async (ctx) => {
+        const list = ctx.request.body.list
+        const keys = covertColumnByType(ctx.request.body.keys)
+        const params = [];
+        list.forEach(rr => {
+            const obj = "('" + rr + "','" + ctx.request.body.courseId + "')"
+            params.push(obj)
+        })
+        const sql = `insert into kb_staff_compulsory_courses(${keys.join(',')}) VALUES ${params.join(',')};`;
+        const data = await pool.query(sql)
+        console.log('==>>???', keys, sql);
+        ctx.body = {
+            data, success: true, msg: '查询成功！'
+        }
+    })
+
+    //指定人员删除
+    router.post('/staffCompulsoryCourses/deleteMulData', async (ctx) => {
+        const list = ctx.request.body.list
+        const keys = covertColumnByType(ctx.request.body.keys)
+        let idStr = '';
+        list.forEach((res, index) => {
+            idStr += index === list.length - 1 ? "'" + res + "'" : "'" + res + "'" + ','
+        })
+        console.log('==>>???', keys, `delete from kb_staff_compulsory_courses where course_id='${ctx.request.body.courseId}' and staff_id IN (${idStr});`);
+        const data = await pool.query(`delete from kb_staff_compulsory_courses where course_id='${ctx.request.body.courseId}' and staff_id IN (${idStr});`)
+        ctx.body = {
+            data, success: true, msg: '查询成功！'
         }
     })
     // 统计

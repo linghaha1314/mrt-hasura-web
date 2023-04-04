@@ -14,6 +14,8 @@ const {
     refUrl,
     dictionaryDataByTypeCode,
     validLogin,
+    createMultiple,
+    verify,
     getUserByUsername,
     getApi,
     deconstructionData,
@@ -36,6 +38,20 @@ module.exports = (router) => {
     router.post(`/create`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = await create(ctx, next);
+        if (data && data.severity !== 'ERROR') {
+            ctx.body = {
+                id: data, success: true, msg: '添加成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '请确认字段是否重复！'
+        }
+    });
+
+    router.post(`/createMultiple`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await createMultiple(ctx, next);
         if (data && data.severity !== 'ERROR') {
             ctx.body = {
                 id: data, success: true, msg: '添加成功！'
@@ -89,6 +105,7 @@ module.exports = (router) => {
             list: parentData, total: data.total, success: true, msg: '查询成功！'
         }
     });
+
     router.get(`/getListByPageNotTree`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl.replace(/NotTree/, '');
         const data = await getListByPage(ctx, next);
@@ -214,6 +231,20 @@ module.exports = (router) => {
         }
     });
 
+    router.post(`/verify`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = ctx.request.body.list?.length > 0 ? await verify(ctx, next) : [];
+        if (data) {
+            ctx.body = {
+                list: data, success: true, msg: '成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '失败！'
+        }
+    });
+
     //删除层级，多条件删除，包括and,or
 
     router.get(`/api`, async (ctx) => {
@@ -311,6 +342,20 @@ module.exports = (router) => {
                 }, exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7), // 60 seconds * 60 minutes = 1 hour
             }, 'kbds random secret')
         };
+    });
+
+    router.get(`/user/getAll`, async (ctx, next) => {
+        ctx.request.url = ctx.request.realUrl
+        const data = await getApi(ctx, next);
+        if (data) {
+            ctx.body = {
+                list: data.list, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '失败！'
+        }
     });
 
     router.get('/getUserInfo', async (ctx, next) => {
