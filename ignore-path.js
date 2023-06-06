@@ -6,6 +6,7 @@ const ignoreUrl = [
     /\/chapters.*$/,
     /\/ps.*$/,
     /\/api.*$/,
+    /\/blockToken.*$/,
     /\/swiper\/getListByPage/,
     /\/getListByPage/,
     /\/getByTypeCode/,

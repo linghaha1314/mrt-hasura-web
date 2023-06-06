@@ -14,6 +14,8 @@ const jsonwebtoken = require("jsonwebtoken");
 const pool = require("./utils/pool");
 //编译后静态路径
 const staticPath = './frontend';
+const blockToken = {};
+
 //crud服务
 const {refUrl} = require('./config')
 app.keys = ['kbds random secret'];
@@ -43,7 +45,9 @@ app.use(cors());
 //日志记录
 app.use(async (ctx, next) => {
     ctx.getUserId = jsonwebtoken.decode(ctx.request.req.headers.authorization?.substring(7) || null)?.data.id;
-    await next();
+    if(ctx.request.req.headers.authorization !== blockToken.old || ctx.request.url.indexOf('/getCode') > -1){
+        await next();
+    }
     const rt = ctx.response.get('X-Response-Time');
     const reUrl = ctx.response.get('X-Response-Url');
     // if (ctx.originalUrl.indexOf('attachs') > -1) {
@@ -81,7 +85,9 @@ app.use(async (ctx, next) => {
 //监听器
 app.use(async (ctx, next) => {
     const start = Date.now();
-    await next();
+    if(ctx.request.req.headers.authorization !== blockToken.old || ctx.request.url.indexOf('/getCode') > -1){
+        await next();
+    }
     const ms = Date.now() - start;
     ctx.set('X-Response-Time', `${ms}ms`);
 });
@@ -124,6 +130,8 @@ app.use(async (ctx, next) => {
         ctx.body = {
             data: response, success: true, msg: '查询成功！'
         }
+    }else if(ctx.request.url.indexOf('/blockToken') > -1){
+        blockToken.old = ctx.request.req.headers.authorization
     } else {
         switch (url.split('/')[2]) {
             case 'create':
@@ -178,7 +186,10 @@ app.use(async (ctx, next) => {
                 break;
         }
     }
-    await next();
+
+    if(ctx.request.req.headers.authorization !== blockToken.old || ctx.request.url.indexOf('/getCode') > -1){
+        await next();
+    }
 });
 
 //接口

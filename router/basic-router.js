@@ -313,6 +313,7 @@ module.exports = (router) => {
 
     //自定义接口
     router.post('/login', async (ctx) => {
+        blockToken = {}
         const bytes = CryptoJS.AES.decrypt(ctx.request.body.password, 'kb12315')
         const originalText = bytes.toString(CryptoJS.enc.Utf8)
         ctx.request.body.password = originalText
