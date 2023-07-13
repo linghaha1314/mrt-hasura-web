@@ -45,9 +45,10 @@ app.use(cors());
 //日志记录
 app.use(async (ctx, next) => {
     ctx.getUserId = jsonwebtoken.decode(ctx.request.req.headers.authorization?.substring(7) || null)?.data.id;
-    if(ctx.request.req.headers.authorization !== blockToken.old || ctx.request.url.indexOf('/getCode') > -1){
-        await next();
-    }
+    // if(ctx.request.req.headers.authorization !== blockToken.old || ctx.request.url.indexOf('/getCode') > -1){
+    //     await next();
+    // }
+    await next();
     const rt = ctx.response.get('X-Response-Time');
     const reUrl = ctx.response.get('X-Response-Url');
     // if (ctx.originalUrl.indexOf('attachs') > -1) {
@@ -85,9 +86,10 @@ app.use(async (ctx, next) => {
 //监听器
 app.use(async (ctx, next) => {
     const start = Date.now();
-    if(ctx.request.req.headers.authorization !== blockToken.old || ctx.request.url.indexOf('/getCode') > -1){
-        await next();
-    }
+    // if(ctx.request.req.headers.authorization !== blockToken.old || ctx.request.url.indexOf('/getCode') > -1){
+    //     await next();
+    // }
+    await next();
     const ms = Date.now() - start;
     ctx.set('X-Response-Time', `${ms}ms`);
 });
@@ -187,9 +189,10 @@ app.use(async (ctx, next) => {
         }
     }
 
-    if(ctx.request.req.headers.authorization !== blockToken.old || ctx.request.url.indexOf('/getCode') > -1){
-        await next();
-    }
+    // if(ctx.request.req.headers.authorization !== blockToken.old || ctx.request.url.indexOf('/getCode') > -1){
+    //     await next();
+    // }
+    await next();
 });
 
 //接口

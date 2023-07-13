@@ -1032,7 +1032,7 @@ module.exports = (router) => {
             }
             ctx.request.body.maxTime = res.maxTime < ctx.request.body.studyTime ? ctx.request.body.studyTime : res.maxTime;
             //获取当前播放的studyTime;传入的studyTime>才记录；否则不记录；因为只执行一次，所以应该有try,catch防止错误，数据改变！必须一步一步都正确，分级！！！
-            if (res.studyTime + 5 >= res['totalTime']) {  //章节结束
+            if (ctx.request.body.studyTime + 5 >= ctx.request.body['totalTime']) {  //章节结束
                 ctx.request.body.completed = true
                 ctx.request.body.isRealCompleted = true    //改变所有的有关章节数据！
                 ctx.request.body.studyTime = res['totalTime']
