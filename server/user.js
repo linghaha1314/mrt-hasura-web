@@ -111,7 +111,7 @@ async function getUserByUsername(username) {
 }
 
 //查
-async function getListByPage(ctx) {
+async function getListByPage(ctx, likeFlag = true) {
     const obj = JSON.parse(JSON.stringify(ctx.request.query));
     delete obj.limit;
     delete obj.offset;
@@ -125,11 +125,20 @@ async function getListByPage(ctx) {
     }
     let index = 1;
     for (const w in obj) {
-        sql += (convertColumn(w).indexOf('id') > -1 || convertColumn(w).indexOf('status') > -1) ? ` ${convertColumn(w)}=$${index}` : ` ${convertColumn(w)} like $${index}`;
-        params.push((convertColumn(w).indexOf('id') > -1 || convertColumn(w).indexOf('status') > -1) ? obj[w] : ('%' + obj[w] + '%'));
-        if (index < keys.length) {
-            sql += ` and`
+        if (likeFlag) {
+            sql += (convertColumn(w).indexOf('id') > -1 || convertColumn(w).indexOf('status') > -1) ? ` ${convertColumn(w)}=$${index}` : ` ${convertColumn(w)} like $${index}`;
+            params.push((convertColumn(w).indexOf('id') > -1 || convertColumn(w).indexOf('status') > -1) ? obj[w] : ('%' + obj[w] + '%'));
+            if (index < keys.length) {
+                sql += ` and`
+            }
+        } else {
+            sql += ` ${convertColumn(w)} = $${index}`;
+            params.push(obj[w]);
+            if (index < keys.length) {
+                sql += ` and`
+            }
         }
+
         index++;
     }
     const total = await pool.query(`SELECT count(id) FROM ${getTableName(ctx.request.url)}${sql}`, params);

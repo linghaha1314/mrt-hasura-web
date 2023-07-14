@@ -369,7 +369,7 @@ module.exports = (router) => {
         let token = null;
         if (ctx.getUserId === undefined && ctx.session.user) {
             const casUser = ctx.session.user;
-            const old = await getListByPage(invertCtxData({username: casUser.username}, '/user/getListByPage', 'get'));
+            const old = await getListByPage(invertCtxData({username: casUser.username}, '/user/getListByPage', 'get'), false);
             if (old.total == 0) {
                 const result = await create(invertCtxData({
                     username: casUser.username,
