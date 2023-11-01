@@ -44,7 +44,10 @@ app.use(cors());
 
 //日志记录
 app.use(async (ctx, next) => {
-    ctx.getUserId = jsonwebtoken.decode(ctx.request.req.headers.authorization?.substring(7) || null)?.data.id;
+    try {
+        ctx.getUserId = jsonwebtoken.decode(ctx.request.req.headers.authorization?.substring(7) || null)?.data.id;
+    } catch (e) {
+    }
     // if(ctx.request.req.headers.authorization !== blockToken.old || ctx.request.url.indexOf('/getCode') > -1){
     //     await next();
     // }
@@ -132,7 +135,7 @@ app.use(async (ctx, next) => {
         ctx.body = {
             data: response, success: true, msg: '查询成功！'
         }
-    }else if(ctx.request.url.indexOf('/blockToken') > -1){
+    } else if (ctx.request.url.indexOf('/blockToken') > -1) {
         blockToken.old = ctx.request.req.headers.authorization
     } else {
         switch (url.split('/')[2]) {
