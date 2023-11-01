@@ -802,39 +802,66 @@ module.exports = (router) => {
 
     router.post(`/courseStatistic/getCourseStatistic`, async (ctx) => {
         ctx.request.url = ctx.request.realUrl
-        const data = await getApi(ctx);
-        const list = [];
-        (data.list || []).forEach(res => {
-            const obj = deconstructionData(res);
-            obj.score = obj.score ? Number((obj.score * 2).toFixed(1)) : 0   //转化成十分制
-            obj.studyTime = (obj.studyTime / 60 / 60).toFixed(2)
-            const compulsoryStaffs = []
-            const watchStaffs = [];
-            let notCompleteStaffNum = 0;
-            obj.compulsoryStaffs = deconstructionArr(obj.compulsoryStaffs);
-            obj.watchRecords = deconstructionArr(obj.watchRecords);
-            obj.compulsoryStaffs.forEach(ii => {
-                compulsoryStaffs.push(ii);
-            })
-            obj.completeStaffList = obj.completeStaffList.map(res => deconstructionData(res));
-            obj.notCompleteStaffList = obj.notCompleteStaffList.map(res => deconstructionData(res));
-            obj.compulsoryStaffs = compulsoryStaffs;
-            obj.watchRecords.forEach(ii => {
-                watchStaffs.push({...ii, courseCompleted: ii[0].courseCompleted});
-            })
-            delete obj.watchRecords
-            obj['watchStaffs'] = watchStaffs;
-            obj['actualStudyNum'] = watchStaffs.length;
-            obj['expectStudyNum'] = obj.compulsoryStaffs.length;
-            obj['notCompleteStaffNum'] = notCompleteStaffNum;
-            obj['studyEngageRate'] = convertRate(watchStaffs.length / (obj.compulsoryStaffs.length || 1));  //学习参与率
-            obj['completeEngageRate'] = convertRate((obj.compulsoryStaffs.length - notCompleteStaffNum) / obj.compulsoryStaffs.length);  //学习完成人率
-            obj['notCompleteEngageRate'] = convertRate(notCompleteStaffNum / obj.compulsoryStaffs.length); //
-            list.push(obj);
-        })
+        const sqlt = `SELECT COUNT(*)
+FROM kb_courses;`
+        const sql = `
+            SELECT
+            c.*,
+            s.name AS section_name,
+            m.name AS major_name,
+            st.name AS staff_name,
+            us.name AS lecturer_name,
+            (select count(distinct w.staff_id) from kb_staff_compulsory_courses w where w.course_id=c.id) as total,
+            (select count(distinct wr.staff_id) from kb_watch_record wr where wr.course_id=c.id and wr.course_completed=true) as completed,
+            (select sc.score from kb_course_score sc where sc.course_id=c.id) as score,
+            (select count(*) from kb_collect_course cc where cc.course_id=c.id) as collect
+            FROM
+            kb_courses AS c
+            LEFT JOIN kb_section AS s ON c.section_id = s.id
+            LEFT JOIN kb_major AS m ON c.major_id = m.id
+            LEFT JOIN kb_user AS st ON c.staff_id = st.id
+            LEFT JOIN kb_user AS us ON c.lecturer_id = us.id
+            where c.name like concat('%', ${ctx.request.body.name?'\''+ctx.request.body.name+'\'' : '\'\''}, '%')
+            limit ${ ctx.request.body.limit } offset ${ ctx.request.body.offset || 0 }
+        `;
+
+        const resultData = await pool.query(sql)
+        const totalData = await pool.query(sqlt)
+        console.log(totalData, 7777)
+        const list = covertColumnByType(resultData.rows, 2)
+        // const data = await getApi(ctx);
+        // const list = [];
+        // (data.list || []).forEach(res => {
+        //     const obj = deconstructionData(res);
+        //     obj.score = obj.score ? Number((obj.score * 2).toFixed(1)) : 0   //转化成十分制
+        //     obj.studyTime = (obj.studyTime / 60 / 60).toFixed(2)
+        //     const compulsoryStaffs = []
+        //     const watchStaffs = [];
+        //     let notCompleteStaffNum = 0;
+        //     obj.compulsoryStaffs = deconstructionArr(obj.compulsoryStaffs);
+        //     obj.watchRecords = deconstructionArr(obj.watchRecords);
+        //     obj.compulsoryStaffs.forEach(ii => {
+        //         compulsoryStaffs.push(ii);
+        //     })
+        //     obj.completeStaffList = obj.completeStaffList.map(res => deconstructionData(res));
+        //     obj.notCompleteStaffList = obj.notCompleteStaffList.map(res => deconstructionData(res));
+        //     obj.compulsoryStaffs = compulsoryStaffs;
+        //     obj.watchRecords.forEach(ii => {
+        //         watchStaffs.push({...ii, courseCompleted: ii[0].courseCompleted});
+        //     })
+        //     delete obj.watchRecords
+        //     obj['watchStaffs'] = watchStaffs;
+        //     obj['actualStudyNum'] = watchStaffs.length;
+        //     obj['expectStudyNum'] = obj.compulsoryStaffs.length;
+        //     obj['notCompleteStaffNum'] = notCompleteStaffNum;
+        //     obj['studyEngageRate'] = convertRate(watchStaffs.length / (obj.compulsoryStaffs.length || 1));  //学习参与率
+        //     obj['completeEngageRate'] = convertRate((obj.compulsoryStaffs.length - notCompleteStaffNum) / obj.compulsoryStaffs.length);  //学习完成人率
+        //     obj['notCompleteEngageRate'] = convertRate(notCompleteStaffNum / obj.compulsoryStaffs.length); //
+        //     list.push(obj);
+        // })
         if (list) {
             ctx.body = {
-                list: list, total: deconstructionData(data['totalData']).total, success: true, msg: '查询成功！'
+                list: list, total: parseInt(totalData.rows[0].count), success: true, msg: '查询成功！'
             }
             return;
         }
@@ -842,6 +869,54 @@ module.exports = (router) => {
             success: false, msg: '查询失败！'
         }
     });
+
+    router.post('/courseStatistic/viewCompleted',async (ctx) => {
+        const sql = `
+            SELECT
+            st.*
+            FROM
+            kb_watch_record AS c
+            LEFT JOIN kb_user AS st ON c.staff_id = st.id
+            where c.course_id = '${ctx.request.body.courseId}'
+        `;
+
+        const resultData = await pool.query(sql)
+        console.log(resultData, 7777)
+        const list = covertColumnByType(resultData.rows, 2)
+        if (list) {
+            ctx.body = {
+                list: list, total: list.length, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    })
+
+    router.post('/courseStatistic/viewNeed',async (ctx) => {
+        const sql = `
+            SELECT
+            st.*
+            FROM
+            kb_staff_compulsory_courses AS c
+            LEFT JOIN kb_user AS st ON c.staff_id = st.id
+            where c.course_id = '${ctx.request.body.courseId}'
+        `;
+
+        const resultData = await pool.query(sql)
+        console.log(resultData, 7777)
+        const list = covertColumnByType(resultData.rows, 2)
+        if (list) {
+            ctx.body = {
+                list: list, total: list.length, success: true, msg: '查询成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '查询失败！'
+        }
+    })
 
     router.post(`/todayStudy/getDateRangeData`, async (ctx) => {
         const data = await getApi(ctx);
@@ -931,8 +1006,22 @@ module.exports = (router) => {
             background: '#666', // 背景颜色
             charPreset: '1234567890'
         })
-        ctx.body = {
-            data: c.data, text: c.text, success: true, msg: '查询成功！'
+        // ctx.cookies.set('code', c.text)
+        // console.log(ctx.cookies.get('code'), 88888888)
+        ctx.request.url = '/dictionaryData/updateById'
+        ctx.request.body = {
+            code: c.text,
+            id: 'c0fe3740-ed2d-4f9d-8629-2dbd7c3cc2ad',
+            name: '验证码',
+            remark: '验证码存储',
+            status: 0,
+            typeId: '3e8c3fda-a532-4c22-bda6-4dd248561b92'
+        }
+        const data = await updateById(ctx);
+        if (data) {
+            ctx.body = {
+                data: c.data, text: c.text, success: true, msg: '查询成功！'
+            }
         }
     });
 
@@ -972,7 +1061,7 @@ module.exports = (router) => {
                     from kb_watch_record kwr
                     group by kwr.course_id) w
                    on c.id = w.course_id
-         where status = 1 order by w.staffNum desc nulls last limit $1;`
+         where recommend_status = 1 order by w.staffNum desc nulls last limit $1;`
         const result = await pool.query(sql, [ctx.request.body.limit || 3])
         ctx.body = {
             list: result.rows, total: result.rows.length, success: true, msg: '查询成功！'
