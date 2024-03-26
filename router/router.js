@@ -1061,7 +1061,14 @@ FROM kb_courses;`
                     from kb_watch_record kwr
                     group by kwr.course_id) w
                    on c.id = w.course_id
-         where recommend_status = 1 order by w.staffNum desc nulls last limit $1;`
+         where recommend_status = 1 order by w.staffNum desc nulls last limit $1;` // lc.set
+//         const sql = `select c.name, c.img, c.id
+//          from kb_courses c
+// //          left join (select kwr.course_id, count(distinct kwr.staff_id) as staffNum
+// //                     from kb_watch_record kwr
+// //                     group by kwr.course_id) w
+// //                    on c.id = w.course_id
+//          where status = 1 order by c.created desc;`
         const result = await pool.query(sql, [ctx.request.body.limit || 3])
         ctx.body = {
             list: result.rows, total: result.rows.length, success: true, msg: '查询成功！'
@@ -1106,7 +1113,7 @@ FROM kb_courses;`
             await create(ctx, next);
         } else if (data.list[0].completed) {  //有观看记录，但是已经看完了，需要新增一次看课记录????
             const res = data.list[0]
-            if (res.studyTime + 5 >= res['totalTime'] && ctx.request.body.studyTime === 1) {
+            if (res.studyTime + 5 >= res['totalTime']*0.9 && ctx.request.body.studyTime === 1) {
                 ctx.request.body.courseCompleted = res.courseCompleted
                 ctx.request.body.isRealCompleted = true    //改变所有的有关章节数据！
                 ctx.request.body.maxTime = res.totalTime    //改变所有的有关章节数据！
@@ -1121,7 +1128,7 @@ FROM kb_courses;`
             }
             ctx.request.body.maxTime = res.maxTime < ctx.request.body.studyTime ? ctx.request.body.studyTime : res.maxTime;
             //获取当前播放的studyTime;传入的studyTime>才记录；否则不记录；因为只执行一次，所以应该有try,catch防止错误，数据改变！必须一步一步都正确，分级！！！
-            if (ctx.request.body.studyTime + 5 >= ctx.request.body['totalTime']) {  //章节结束
+            if (ctx.request.body.studyTime + 5 >= ctx.request.body['totalTime']*0.9) {  //章节结束
                 ctx.request.body.completed = true
                 ctx.request.body.isRealCompleted = true    //改变所有的有关章节数据！
                 ctx.request.body.studyTime = res['totalTime']
