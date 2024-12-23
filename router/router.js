@@ -187,7 +187,6 @@ module.exports = (router) => {
     router.post(`/user/createUser`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const roles = ctx.request.body['roles']
-        console.log(roles, 89898)
         delete ctx.request.body['roles']
         const data = await create(ctx, next);
         if (roles) {
@@ -518,7 +517,6 @@ module.exports = (router) => {
 
     router.post('/verify/getListByChapterId', async (ctx, next) => {
         const data = await getApi(invertCtxData({chapterId: ctx.request.body.chapterId}, '/verify/getListByChapterId', 'post', 'getApi'))
-        console.log(data.list);
         data.list.forEach(rr => {
             if (rr.examData) {
                 rr.examData.options = JSON.parse(rr.examData.options)
@@ -550,7 +548,6 @@ module.exports = (router) => {
                 }
             }
             const data = await create(newCtx, next);
-            console.log(data)
             sum += data.rowCount
         }
         if (sum === ctx.request.body['verifyList'].length) {
@@ -827,7 +824,6 @@ FROM kb_courses;`
 
         const resultData = await pool.query(sql)
         const totalData = await pool.query(sqlt)
-        console.log(totalData, 7777)
         const list = covertColumnByType(resultData.rows, 2)
         // const data = await getApi(ctx);
         // const list = [];
@@ -873,15 +869,19 @@ FROM kb_courses;`
     router.post('/courseStatistic/viewCompleted',async (ctx) => {
         const sql = `
             SELECT
-            st.*
+            st.*,
+            s.name AS section_name,
+            c.total_time AS study_time,
+            co.score AS score
             FROM
             kb_watch_record AS c
             LEFT JOIN kb_user AS st ON c.staff_id = st.id
+            LEFT JOIN kb_section AS s ON st.section_id = s.id
+            LEFT JOIN kb_course_score AS co ON c.course_id = co.course_id
             where c.course_id = '${ctx.request.body.courseId}'
         `;
 
         const resultData = await pool.query(sql)
-        console.log(resultData, 7777)
         const list = covertColumnByType(resultData.rows, 2)
         if (list) {
             ctx.body = {
@@ -905,7 +905,6 @@ FROM kb_courses;`
         `;
 
         const resultData = await pool.query(sql)
-        console.log(resultData, 7777)
         const list = covertColumnByType(resultData.rows, 2)
         if (list) {
             ctx.body = {
@@ -1007,7 +1006,6 @@ FROM kb_courses;`
             charPreset: '1234567890'
         })
         // ctx.cookies.set('code', c.text)
-        // console.log(ctx.cookies.get('code'), 88888888)
         ctx.request.url = '/dictionaryData/updateById'
         ctx.request.body = {
             code: c.text,
@@ -1156,7 +1154,6 @@ FROM kb_courses;`
                             staff_id: {_eq: ctx.request.body.staffId}, course_id: {_eq: ctx.request.body.courseId}
                         }
                     }, '/staffCredits/getDataByStaffId', 'post', 'getApi'))
-                    console.log('--->>>credits', credits);
                     if (credits.list.length === 0) {
                         const date = formatTime('', 'YY-MM-DD-hh:mm:ss')
                         await newCert({
@@ -1292,7 +1289,6 @@ from kb_courses c
          and (concat(c.name) like $1
          or concat(u.lecturer_name) like $1
          or concat(cc.type_name) like $1) group by c.id,w.staff_num,s.section_id,s.section_name,m.major_id,m.major_name,u.lecturer_id,u.lecturer_name ${orderSql} limit $2 offset $3`
-        console.log('---sql:', sql, ['%' + ctx.request.body.name + '%', ctx.request.body.limit, ctx.request.body.offset, (ctx.request.body.typeCode ?? '%') + '%'])
         const result = await pool.query(sql, ['%' + ctx.request.body.name + '%', ctx.request.body.limit, ctx.request.body.offset, (ctx.request.body.typeCode ?? '%') + '%', (ctx.request.body.columnCode ?? '%') + '%'])
         const total = await pool.query(sql, ['%' + ctx.request.body.name + '%', 1000000, 0, (ctx.request.body.typeCode ?? '%') + '%', (ctx.request.body.columnCode ?? '%') + '%'])
         ctx.body = {
@@ -1357,7 +1353,6 @@ from kb_courses c
         const createStaff = await create(invertCtxData({
             courseId: data.courseId, staffId: data.staffId, score: data.score, paperId: data.paperId
         }, '/examAnswerStaffs/create'))
-        console.log('===>>>???', createStaff)
         for (const rr of data.questions) {
             const obj = {
                 answerId: createStaff.rows[0].id,
