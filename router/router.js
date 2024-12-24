@@ -897,10 +897,14 @@ FROM kb_courses;`
     router.post('/courseStatistic/viewNeed',async (ctx) => {
         const sql = `
             SELECT
-            st.*
+            st.*,
+            s.name AS section_name,
+            co.score AS score
             FROM
             kb_staff_compulsory_courses AS c
             LEFT JOIN kb_user AS st ON c.staff_id = st.id
+            LEFT JOIN kb_section AS s ON st.section_id = s.id
+            LEFT JOIN kb_course_score AS co ON c.course_id = co.course_id
             where c.course_id = '${ctx.request.body.courseId}'
         `;
 
@@ -1001,7 +1005,7 @@ FROM kb_courses;`
             size: 4, // 验证码长度
             ignoreChars: '0o1i', // 验证码字符中排除 0o1i
             color: true, // 验证码是否有彩色
-            noise: 1, //干扰线
+            noise: 1, // 干扰线
             background: '#666', // 背景颜色
             charPreset: '1234567890'
         })
@@ -1026,7 +1030,7 @@ FROM kb_courses;`
     router.post(`/chapters/getListByCourseId`, async (ctx, next) => {
         ctx.request.url = ctx.request.realUrl
         const data = (await getApi(ctx, next)).data;
-        if (ctx.request.body['where']) {  //登录才会查询播放记录
+        if (ctx.request.body['where']) {  // 登录才会查询播放记录
             data.list.forEach(res => {
                 res.completed = false;
                 if (res['recordChapter'].length === 0) {
