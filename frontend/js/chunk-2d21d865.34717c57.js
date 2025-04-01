@@ -1,0 +1,1 @@
+(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["chunk-2d21d865"],{d256:function(e,n,o){"use strict";o.r(n);var c=o("7a23");const t="Search";var r={__name:"CoursePermission",setup(e){return(e,n)=>{const o=Object(c["resolveComponent"])("Icon");return Object(c["openBlock"])(),Object(c["createBlock"])(o,{icon:t})}}};const s=r;n["default"]=s}}]);

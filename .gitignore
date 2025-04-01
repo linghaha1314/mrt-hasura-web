@@ -3,8 +3,6 @@ node_modules
 /dist
 hasura-dist.*
 hasura-dist
-attachs
-frontend
 mobile
 
 # local env files
@@ -27,3 +25,4 @@ pnpm-debug.log*
 *.sw?
 .svn
 *.zip
+/yarn.lock
