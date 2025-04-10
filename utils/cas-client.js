@@ -73,7 +73,8 @@ module.exports = (function () {
                     method: 'GET',
                     url: `${options.cas_url}${options.cas_validate}?ticket=${ticket}&service=http://${ctx.host}`,
                     headers: {
-                        "content-type": 'text/html'
+                        "content-type": 'text/html',
+                        'x-hasura-access-key': 'kbds@1234'
                     }
                 });
                 const result = convert.xml2json(response, {

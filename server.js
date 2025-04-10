@@ -134,6 +134,7 @@ app.use(async (ctx, next) => {
         const response = await request({
             method: ctx.method, url: refUrl + ctx.request.url, headers: {
                 "content-type": ctx.header['content-type'],
+                'x-hasura-access-key': 'kbds@1234'
             }, body: ctx.request.body, json: true
         });
         ctx.body = {

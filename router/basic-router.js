@@ -254,6 +254,7 @@ module.exports = (router) => {
             url: refUrl + ctx.request.realUrl.replace(/\/api\/rest/, ''),
             headers: {
                 "content-type": ctx.header['content-type'],
+                'x-hasura-access-key': 'kbds@1234'
             },
             body: ctx.request.body,
             json: true

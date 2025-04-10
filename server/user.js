@@ -359,6 +359,7 @@ async function getApi(ctx, next) {
     const response = await request({
         method: ctx.method, url: refUrl + url, headers: {
             "content-type": ctx.header['content-type'],
+            'x-hasura-access-key': 'kbds@1234'
         }, body: ctx.request.body, json: true
     });
     return response;
