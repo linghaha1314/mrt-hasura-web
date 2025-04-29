@@ -17,6 +17,8 @@ const {
 const pool = require("../utils/pool");
 const request = require("request-promise");
 const {refUrl} = require("../config");
+const fs = require('fs');
+const path = require('path');
 
 // const {default: xlsx} = require("node-xlsx");
 async function createUpdateCourses(ctx, next = {}) {
@@ -58,6 +60,45 @@ async function createUpdateCourses(ctx, next = {}) {
 
 module.exports = (router) => {
     require('./basic-router.js')(router)
+    // 解锁
+    router.post('/user/updateLock', async (ctx, next) => {
+        ctx.request.url = '/user/updateById'
+        ctx.request.body.errorNum = 5
+        const data = await updateById(ctx, next);
+        if (data) {
+            ctx.body = {
+                data: data, success: true, msg: '更新成功！'
+            }
+            return;
+        }
+        ctx.body = {
+            success: false, msg: '更新失败！'
+        }
+    });
+    // 下载接口
+    router.get('/download/xlsx/:filename', async (ctx) => {
+        const filename = ctx.params.filename;
+        const safeFilename = path.basename(filename); // 防止路径穿越攻击
+        const filePath = path.join(process.cwd(), 'xlsx', safeFilename );
+
+        try {
+            console.log('准备读取文件:', filePath);
+
+            // 检查文件存在
+            await fs.promises.access(filePath, fs.constants.R_OK);
+            console.log('正在下载文件:', filePath);
+            // 设置正确的响应头
+            ctx.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            ctx.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+
+            // ⚡ 关键：用流的方式返回文件
+            ctx.body = fs.createReadStream(filePath);
+        } catch (err) {
+            console.error('下载文件失败:', err);
+            ctx.status = 404;
+            ctx.body = { error: '文件不存在或无法访问: ' + filePath };
+        }
+    });
     //首页栏目
     router.post(`/roleAuthorityHomeColumn/update`, async (ctx, next) => {
         const newCtx = {
@@ -210,6 +251,7 @@ module.exports = (router) => {
         const data = await getApi(ctx, next);
         const list = [];
         data.list.forEach((res, index) => {
+            delete res.password
             res['roles'] = [];
             const roleList = [];
             (res['roleList'] || []).forEach(rr => {
