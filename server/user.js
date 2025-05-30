@@ -77,7 +77,7 @@ async function validLogin(loginObj) {
     // 连续登录五次错误就锁住这个帐号；登录错误就记录一次；
     const user = await pool.query('SELECT * FROM kb_user where username=$1', [loginObj.username]);
     if (user.rows.length === 0) {
-        result.msg = '用户名错误！';
+        result.msg = '密码或账号错误,请重试!！';
         result.success = false;
         return result;
     }
